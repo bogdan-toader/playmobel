@@ -1,6 +1,7 @@
-
-
 var DemoMap = function () {
+
+    var LAT = "lat";
+    var LNG = "lng";
 
     var mymap;
     var userPositionMarker;
@@ -24,14 +25,13 @@ var DemoMap = function () {
         ////o kit takes time in the beginning to learn, but after you can do everything in 1 min
 
         //here the graph is connected at the same port
-         graph = new org.mwg.GraphBuilder()
-             .withStorage(new org.mwg.plugin.WSClient("ws://" + window.location.hostname + ":9011"))
-             .withPlugin(new org.mwg.structure.StructurePlugin())
-             .withPlugin(new org.mwg.ml.MLPlugin()).
-             build();
-         graph.connect(function () {
+        graph = new org.mwg.GraphBuilder()
+            .withStorage(new org.mwg.plugin.WSClient("ws://" + window.location.hostname + ":9011"))
+            .withPlugin(new org.mwg.structure.StructurePlugin())
+            .withPlugin(new org.mwg.ml.MLPlugin()).build();
+        graph.connect(function () {
 
-         });
+        });
 
         initMap();
     };
@@ -114,19 +114,44 @@ var DemoMap = function () {
         return graph;
     };
 
-    function updateTime(){
+    function updateTime() {
         var form = document.querySelector("#filter_form");
         var selectedTime = form.querySelector("[name=field_time]").value;
-        alert(selectedTime);
+        //alert(selectedTime);
         //As you see at this point, here we have the selected time in variable reaching from the client side
         // the only remaining task is to get gps coordinated from the server side
         //for this we create a task ok
 
+        var context = testNavigation.prepare(graph, null, function (result) {
+            result.free();
+        });
+
+        context.setVariable("processTime", selectedTime);
+        console.log("before executing");
+        testNavigation.executeUsing(context);
+
 
     }
 
-//Intelli J free version does not support node JS, i think you can get a pro licence for free from uni
-    var loadUserTask = org.mwg.core.task.Actions.newTask();
+    var testNavigation = org.mwg.core.task.Actions.newTask()
+        .then(org.mwg.core.task.Actions.print("{{processTime}}"))
+        .then(org.mwg.core.task.Actions.setTime("{{processTime}}"))  //here we navigate in the requested time
+        .then(org.mwg.core.task.Actions.readGlobalIndex("users", ""))    //we read the index of all users
+        .then(org.mwg.core.task.Actions.print("{{result}}"))
+        .forEach(org.mwg.core.task.Actions.newTask()  //for each user
+            .then(org.mwg.core.task.Actions.defineAsVar("user"))          //save the user
+            .then(org.mwg.core.task.Actions.attribute(LAT))                      //get the lat
+            .then(org.mwg.core.task.Actions.defineAsVar("lat"))           //save the lat
+            .then(org.mwg.core.task.Actions.readVar("user"))              //reload the user
+            .then(org.mwg.core.task.Actions.attribute(LNG))                     //get the lng
+            .then(org.mwg.core.task.Actions.defineAsVar("lng"))           //save the lng
+            .thenDo(function (context) {
+                //here the context will have the user, the lat and the lng at the requested process time ok
+                alert(context.variable("lat") + " , " + context.variable("lat"));
+                console.log(context.variable("lat"));
+                context.continueTask();
+            })
+        );
 
     return {
         init: init,

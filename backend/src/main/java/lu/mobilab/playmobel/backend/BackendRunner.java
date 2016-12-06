@@ -1,9 +1,14 @@
 package lu.mobilab.playmobel.backend;
 
 import org.mwg.*;
+import org.mwg.task.ActionFunction;
+import org.mwg.task.Task;
+import org.mwg.task.TaskContext;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+
+import static org.mwg.core.task.Actions.*;
 
 /**
  * Created by bogdan.toader on 24/10/16.
@@ -61,6 +66,37 @@ public class BackendRunner {
                     user1.set(LNG, Type.DOUBLE, 6.162544);
                 }
             });
+
+
+            Task testNavigation = org.mwg.core.task.Actions.newTask()
+                    .then(println("{{processTime}}"))
+                    .then(org.mwg.core.task.Actions.setTime("{{processTime}}"))  //Ah, it's ok, i just misused functions
+                    .then(org.mwg.core.task.Actions.readGlobalIndex("users", ""))    //we read the index of all users
+                    .forEach(org.mwg.core.task.Actions.newTask()  //for each user
+                            .then(org.mwg.core.task.Actions.defineAsVar("user"))          //save the user
+                            .then(println("{{result}}")) //I just found a bug in kmf :D :D heheheh
+                            //the index is not forwarding the time check: now the time is correct
+                            .then(org.mwg.core.task.Actions.attribute(LAT))                      //get the lat
+                            .then(org.mwg.core.task.Actions.defineAsVar("lat"))           //save the lat
+                            .then(org.mwg.core.task.Actions.readVar("user"))              //reload the user
+                            .then(org.mwg.core.task.Actions.attribute(LNG))                     //get the lng
+                            .then(org.mwg.core.task.Actions.defineAsVar("lng"))           //save the lng
+                            .thenDo(new ActionFunction() {
+                                @Override
+                                public void eval(TaskContext context) {
+                                    System.out.println(context.variable("lat").get(0));
+                                    System.out.println(context.variable("lng").get(0));
+                                    context.continueTask();
+                                }
+                            })
+                    );
+
+            TaskContext context = testNavigation.prepare(g, null, taskResult -> {
+                taskResult.free();
+
+            });
+            context.setVariable("processTime", System.currentTimeMillis());
+            testNavigation.executeUsing(context);
 
 
             //the server will be listening at this port 9011

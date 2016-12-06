@@ -46,7 +46,7 @@ public class RESTManager {
 
     private Task demo1Task = newTask()
             .then(setTime("{{processTime}}"))
-            .then(readGlobalIndexAll("users"))
+            .then(readGlobalIndex("users",""))
             .then(setAsVar("users"))
             .thenDo(context -> {
                 context.resultAsNodes().get(0).timepoints(org.mwg.Constants.BEGINNING_OF_TIME, org.mwg.Constants.END_OF_TIME,
