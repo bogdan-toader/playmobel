@@ -31,9 +31,6 @@ public class BackendRunner {
 //            String csvfile = "./bogdantoader.csv";
 //            loadFromFile(csvfile, user1);
 
-            //Here is an example, where on the server, we said that the user 1 change position in time
-            //on the JS side we need to retrieve these positions and put on the map
-            // ok  ? ok ok
 
             user1.travelInTime(0, new Callback<Node>() {
                 @Override

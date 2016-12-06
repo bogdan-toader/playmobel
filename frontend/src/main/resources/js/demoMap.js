@@ -11,19 +11,7 @@ var DemoMap = function () {
 
 
     var init = function () {
-
-        // how to connect to MWG
-        // the same graph in kmf can be connected from JS side, and from server side
-        // this is very important to execute tasks on server and see the results on client
-
-        //let's do a simple example
-        // i will load a coordinate of a user on the server side, and here when we connect we will retrieve them
-        //on client side
-        //let's load a csv
-        //man one more time, my goal is not to develop you the whole project,
-        // just to show you how to use and you have to develop the rest
-        ////o kit takes time in the beginning to learn, but after you can do everything in 1 min
-
+        
         //here the graph is connected at the same port
         graph = new org.mwg.GraphBuilder()
             .withStorage(new org.mwg.plugin.WSClient("ws://" + window.location.hostname + ":9011"))
@@ -37,12 +25,7 @@ var DemoMap = function () {
     };
 
 
-// this is a simple map front end in JS,
-// now your goal, is to import csv in KMF
-// and here to connect to graph
-//you can create a slider that changes in time
-// and execute a kmf task to get coordinates of the user
-//then you will have a full server + front end running
+
 
     var initMap = function () {
         //PARIS: 48.8523947,2.3462913
@@ -137,7 +120,8 @@ var DemoMap = function () {
         .then(org.mwg.core.task.Actions.print("{{processTime}}"))
         .then(org.mwg.core.task.Actions.setTime("{{processTime}}"))  //here we navigate in the requested time
         .then(org.mwg.core.task.Actions.readGlobalIndex("users", ""))    //we read the index of all users
-        .then(org.mwg.core.task.Actions.print("{{result}}"))
+        .then(org.mwg.core.task.Actions.print("{{result}}"))  //Here the index should return the users on the server ok
+
         .forEach(org.mwg.core.task.Actions.newTask()  //for each user
             .then(org.mwg.core.task.Actions.defineAsVar("user"))          //save the user
             .then(org.mwg.core.task.Actions.attribute(LAT))                      //get the lat
