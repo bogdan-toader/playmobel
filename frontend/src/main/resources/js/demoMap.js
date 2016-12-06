@@ -12,18 +12,37 @@ var DemoMap = function () {
     var init = function () {
 
         // how to connect to MWG
-        // graph = new org.mwg.GraphBuilder()
-        //     .withStorage(new org.mwg.plugin.WSClient("ws://" + window.location.hostname + ":9011"))
-        //     .withPlugin(new org.mwg.structure.StructurePlugin())
-        //     .withPlugin(new org.mwg.ml.MLPlugin()).
-        //     build();
-        // graph.connect(function () {
-        // });
+        // the same graph in kmf can be connected from JS side, and from server side
+        // this is very important to execute tasks on server and see the results on client
+
+        //let's do a simple example
+        // i will load a coordinate of a user on the server side, and here when we connect we will retrieve them
+        //on client side
+        //let's load a csv
+        //man one more time, my goal is not to develop you the whole project,
+        // just to show you how to use and you have to develop the rest
+        ////o kit takes time in the beginning to learn, but after you can do everything in 1 min
+
+        //here the graph is connected at the same port
+         graph = new org.mwg.GraphBuilder()
+             .withStorage(new org.mwg.plugin.WSClient("ws://" + window.location.hostname + ":9011"))
+             .withPlugin(new org.mwg.structure.StructurePlugin())
+             .withPlugin(new org.mwg.ml.MLPlugin()).
+             build();
+         graph.connect(function () {
+
+         });
 
         initMap();
     };
 
 
+// this is a simple map front end in JS,
+// now your goal, is to import csv in KMF
+// and here to connect to graph
+//you can create a slider that changes in time
+// and execute a kmf task to get coordinates of the user
+//then you will have a full server + front end running
 
     var initMap = function () {
         //PARIS: 48.8523947,2.3462913
@@ -33,7 +52,8 @@ var DemoMap = function () {
             attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
             maxZoom: 18,
             id: 'test',
-            accessToken: 'pk.eyJ1IjoiZ25haW4iLCJhIjoiY2lzbG96eWZwMDA3NzJucGtwMTd5bXh2MiJ9.tJUI9PFDrl7eENeVW9kaWw'
+            accessToken: 'pk.eyJ1IjoiYm9nZGFudG9hZGVyIiwiYSI6ImNpd2RpejNkMjAwOW0yeWs0NTJ2c2Uxcm4ifQ.PrdepIo60YlnfnqQv4FWug' //replace your token here look here
+
         }).on('load', function (e) {
             //document.querySelector("#map_init").textContent = document.querySelector("#map_init").textContent + "... Done !";
         }).addTo(mymap);
@@ -94,7 +114,23 @@ var DemoMap = function () {
         return graph;
     };
 
+    function updateTime(){
+        var form = document.querySelector("#filter_form");
+        var selectedTime = form.querySelector("[name=field_time]").value;
+        alert(selectedTime);
+        //As you see at this point, here we have the selected time in variable reaching from the client side
+        // the only remaining task is to get gps coordinated from the server side
+        //for this we create a task ok
+
+
+    }
+
+//Intelli J free version does not support node JS, i think you can get a pro licence for free from uni
+    var loadUserTask = org.mwg.core.task.Actions.newTask();
+
     return {
-        init: init
+        init: init,
+        updateTime: updateTime,
+        graph: getGraph
     };
 };
