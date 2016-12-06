@@ -32,9 +32,6 @@ public class BackendRunner {
 
             RESTManager rest = new RESTManager();
             rest.start(g);
-
-//where is the paulwurt demo? please delete thefiles
-            //i think you deleted ls nop
         });
     }
 
