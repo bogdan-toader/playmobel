@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PlayMobel map view</title>
+
+    <link rel="stylesheet" href="plugins/leaflet/leaflet.css"/>
+    <script src="plugins/leaflet/leaflet.js"></script>
+
+    <script src="plugins/flatpickr/flatpickr.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="plugins/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="plugins/flatpickr/flatpickr.material_blue.min.css">
+    <link rel="stylesheet" type="text/css" href="plugins/flatpickr/flatpickr.material_blue.min.css">
+
+
+    <!--<script src="plugins/mwg/mwg.js"></script>-->
+    <!--<script src="plugins/mwg/mwg.structure.js"></script>-->
+    <!--<script src="plugins/mwg/mwg.ml.js"></script>-->
+    <!--<script src="plugins/mwg/mwg.ws.js"></script>-->
+
+    <link rel="stylesheet" type="text/css" href="css/demo.css">
+
+</head>
+
+<body>
+
+<div id="mapid" class="map"></div>
+
+
+<div class="accordion">
+    <panel id="acc1">
+        <h2><a href="#acc1">Change City</a></h2>
+        <form class="form-style">
+            <li><select class="field-select" onchange="demo.updateContract(this.value)">
+            </select>
+            </li>
+        </form>
+    </panel>
+    <panel id="acc2">
+        <h2><a href="#acc2">Filter stations</a></h2>
+        <form id="filter_form" class="form-style" action="javascript:;" onsubmit="demo.updateFilter(this)">
+            <li><label>Nb Stations</label><input type="number" class="field-long" name="find_stations_nb" value="10"/>
+            </li>
+            <li>
+                <label>Radius</label><input type="number" class="field-long" name="find_stations_radius" placeholder="(radius in meters)" value="2000"/>
+            </li>
+            <li><input type="submit" value="Filter"/></li>
+        </form>
+    </panel>
+    <panel id="acc3">
+        <h2><a href="#acc3">Station Infos</a></h2>
+        <div>
+            <input class="flatpickr" data-date-format="d-m-Y" data-inline=true data-enable-time=true data-time_24hr=true style="width: 100%; display: none;">
+        </div>
+        <h3>&nbsp;&nbsp;INFORMATION </h3>
+        <table>
+            <tr>
+                <td><b>Bike stands:</b></td>
+                <td id="all_stands"></td>
+            </tr>
+            <tr>
+                <td><b>Free stands:</b></td>
+                <td id="free_stands"></td>
+            </tr>
+            <tr>
+                <td><b>Available bikes:</b></td>
+                <td id="available_bikes"></td>
+            </tr>
+            <tr>
+                <td colspan="2">Bikes availability Trend</td>
+            </tr>
+            <tr>
+                <td colspan="2" id="bikesAvailabilityTrend">
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">Stands availability Trend</td>
+            </tr>
+            <tr>
+                <td colspan="2" id="bikeStandsAvailabilityTrend">
+                </td>
+            </tr>
+        </table>
+    </panel>
+</div>
+
+<script src="js/demoMap.js"></script>
+<script>
+    var mapping = DemoMap();
+    mapping.init();
+</script>
+
+
+</body>
+</html>
+
+
