@@ -11,7 +11,7 @@ var DemoMap = function () {
 
 
     var init = function () {
-        
+
         //here the graph is connected at the same port
         graph = new org.mwg.GraphBuilder()
             .withStorage(new org.mwg.plugin.WSClient("ws://" + window.location.hostname + ":9011"))
@@ -45,7 +45,6 @@ var DemoMap = function () {
             //updateNearest(e);
             userPositionMarker.setLatLng([event.latlng.lat, event.latlng.lng]);
             filterCircle.setLatLng([event.latlng.lat, event.latlng.lng]);
-            updateFilter();
         });
 
         markers = new L.layerGroup();
@@ -80,13 +79,9 @@ var DemoMap = function () {
             filterCircle.setLatLng([event.latlng.lat, event.latlng.lng]);
             if (((new Date()).getTime() - userPositionMarker.lastDrag) > 100) { // threshold
                 userPositionMarker["lastDrag"] = (new Date()).getTime();
-                updateFilter();
             }
         });
 
-        userPositionMarker.on("dragend", function (event) {
-            updateFilter();
-        });
 
     };
     var addFilterCircle = function (lat, lng) {
@@ -105,37 +100,78 @@ var DemoMap = function () {
         // the only remaining task is to get gps coordinated from the server side
         //for this we create a task ok
 
-        var context = testNavigation.prepare(graph, null, function (result) {
-            result.free();
-        });
-
-        context.setVariable("processTime", selectedTime);
-        console.log("before executing");
-        testNavigation.executeUsing(context);
-
-
+        var extrapolation=document.querySelector("[name=field_extrapolation]").checked;
+        if(extrapolation){
+            console.log("extrapolation mode");
+            var context = testNavigationPoly.prepare(graph, null, function (result) {
+                result.free();
+            });
+            context.setVariable("processTime", selectedTime);
+            testNavigationPoly.executeUsing(context);
+        }
+        else{
+            console.log("normal mode");
+            var context = testNavigationNormal.prepare(graph, null, function (result) {
+                result.free();
+            });
+            context.setVariable("processTime", selectedTime);
+            testNavigationNormal.executeUsing(context);
+        }
     }
 
-    var testNavigation = org.mwg.core.task.Actions.newTask()
-        .then(org.mwg.core.task.Actions.print("{{processTime}}"))
-        .then(org.mwg.core.task.Actions.setTime("{{processTime}}"))  //here we navigate in the requested time
-        .then(org.mwg.core.task.Actions.readGlobalIndex("users", ""))    //we read the index of all users
-        .then(org.mwg.core.task.Actions.print("{{result}}"))  //Here the index should return the users on the server ok
+    var actions=org.mwg.core.task.Actions;
 
-        .forEach(org.mwg.core.task.Actions.newTask()  //for each user
-            .then(org.mwg.core.task.Actions.defineAsVar("user"))          //save the user
-            .then(org.mwg.core.task.Actions.attribute(LAT))                      //get the lat
-            .then(org.mwg.core.task.Actions.defineAsVar("lat"))           //save the lat
-            .then(org.mwg.core.task.Actions.readVar("user"))              //reload the user
-            .then(org.mwg.core.task.Actions.attribute(LNG))                     //get the lng
-            .then(org.mwg.core.task.Actions.defineAsVar("lng"))           //save the lng
+    var testNavigationNormal = org.mwg.core.task.Actions.newTask()
+        .then(actions.travelInTime("{{processTime}}"))  //here we navigate in the requested time
+        .then(actions.readGlobalIndex("users"))    //we read the index of all users
+        .forEach(actions.newTask()  //for each user
+            .then(actions.defineAsVar("user"))          //save the user
+            .then(actions.attribute(LAT))                      //get the lat
+            .then(actions.defineAsVar("lat"))           //save the lat
+            .then(actions.readVar("user"))              //reload the user
+            .then(actions.attribute(LNG))                     //get the lng
+            .then(actions.defineAsVar("lng"))           //save the lng
             .thenDo(function (context) {
-                //here the context will have the user, the lat and the lng at the requested process time ok
-                alert(context.variable("lat") + " , " + context.variable("lat"));
-                console.log(context.variable("lat"));
+                
+                console.log(context.variable("lat").get(0) +","+ context.variable("lng").get(0));
+                filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+                userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
                 context.continueTask();
             })
         );
+
+    var testNavigationPoly = org.mwg.core.task.Actions.newTask()
+        .then(actions.travelInTime("{{processTime}}"))  //here we navigate in the requested time
+        .then(actions.readGlobalIndex("users"))    //we read the index of all users
+        .forEach(actions.newTask()  //for each user
+            .then(actions.defineAsVar("user"))          //save the user
+            .then(actions.traverse("latextrap"))
+            .then(actions.attribute(org.mwg.ml.algorithm.regression.PolynomialNode.VALUE))                      //get the lat
+            .then(actions.defineAsVar("lat"))           //save the lat
+            .then(actions.readVar("user"))              //reload the user
+            .then(actions.traverse("lngextrap"))
+            .then(actions.attribute(org.mwg.ml.algorithm.regression.PolynomialNode.VALUE))                      //get the lat
+            .then(actions.defineAsVar("lng"))           //save the lng
+            .thenDo(function (context) {
+                //here the context will have the user, the lat and the lng at the requested process time ok
+                //alert(context.variable("lat") + " , " + context.variable("lng"));
+                //here are you following? yeess]s
+                console.log(context.variable("lat").get(0) +","+ context.variable("lng").get(0));
+                filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+                userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+                context.continueTask();
+            })
+        );
+
+
+
+    //You see now the front end is reading from the server, the location of the user, instead of doing an alert, i will update a
+    // Is it easy? woooow man how cool it is! :D.
+    //Now you see with a normal Node, it jumps from one point to another
+    //because from 0->10 it resolves one node, from 10->20 another etc
+    //is this clear why the point jumps on the map ? yessss
+    ///Now will add a Machine leanring extrapolation between points
+
 
     return {
         init: init,

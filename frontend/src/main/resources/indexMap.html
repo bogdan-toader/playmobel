@@ -34,7 +34,13 @@
         <h2><a href="#acc1">Select time </a></h2>
         <form id="filter_form" class="form-style" action="javascript:;" onsubmit="mapping.updateTime(this)">
             <li>
-                <label>Desired time</label><input type="number" class="field-long" name="field_time" placeholder="(desired timestamp)" value="0"/>
+                <input type="number" class="field-long" name="field_time" placeholder="(desired timestamp)" value="0"/>
+                <label class="switch">
+                    Activate extrapolation
+                    <input type="checkbox" name="field_extrapolation">
+                    <div class="slider round"></div>
+                </label>
+
             </li>
             <li><input type="submit" value="Travel in time"/></li>
         </form>

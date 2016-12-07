@@ -1,9 +1,12 @@
 package lu.mobilab.playmobel.backend;
 
 import org.mwg.*;
+import org.mwg.ml.MLPlugin;
+import org.mwg.ml.algorithm.regression.PolynomialNode;
 import org.mwg.task.ActionFunction;
 import org.mwg.task.Task;
 import org.mwg.task.TaskContext;
+import org.mwg.task.TaskResult;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -18,10 +21,56 @@ public class BackendRunner {
     public final static String LAT = "lat";
     public final static String LNG = "lng";
 
+    private static Task setValue= newTask()
+            .then(travelInTime("{{requestedtime}}"))
+            .then(setAsVar("user"))
+            .then(traverse("latextrap"))
+            .then(set(PolynomialNode.VALUE,Type.DOUBLE,"{{lat}}"))
+            .then(readVar("user"))
+            .then(traverse("lngextrap"))
+            .then(set(PolynomialNode.VALUE,Type.DOUBLE,"{{lng}}"));
+
+    //this is a good way of coding where you can replace one function by another :) the first function will do extrapolation
+    //the second one will just set the variables ok
+
+    private static void setLatLngPoly(final Graph g, final Node user, final long time, final double lat, final double lng){
+        TaskContext context= setValue.prepare(g, user, new Callback<TaskResult>() {
+            @Override
+            public void on(TaskResult result) {
+                result.free();
+            }
+        });
+        context.setGlobalVariable("requestedtime",time);
+        context.setGlobalVariable("lat",lat);
+        context.setGlobalVariable("lng",lng);
+        setValue.executeUsing(context);
+    }
+
+    private static void setLanLngNormal(final Graph g, final Node user, final long time, final double lat, final double lng){
+        user.travelInTime(time, new Callback<Node>() {
+            @Override
+            public void on(Node result) {
+                result.set(LAT, Type.DOUBLE, lat);
+                result.set(LNG, Type.DOUBLE, lng);
+            }
+        });
+    }
+
     public void start() {
 
-        final Graph g = new GraphBuilder().withMemorySize(1000000).build();
+        final Graph g = new GraphBuilder()
+                .withMemorySize(1000000)
+                .withPlugin(new MLPlugin())
+                .build();
         g.connect(connectionResult -> {
+
+
+            Node userPolyLat= g.newTypedNode(0,0, PolynomialNode.NAME);
+            userPolyLat.set(PolynomialNode.PRECISION,Type.DOUBLE,0.0001);
+            Node userPolyLng= g.newTypedNode(0,0, PolynomialNode.NAME);
+            userPolyLng.set(PolynomialNode.PRECISION,Type.DOUBLE,0.0001);
+
+
             Node user1 = g.newNode(0, 0);
             g.index(0, 0, "users", new Callback<NodeIndex>() {
                 @Override
@@ -29,41 +78,28 @@ public class BackendRunner {
                     result.addToIndex(user1);
                 }
             });
+
+
+            user1.addToRelation("latextrap",userPolyLat);
+            user1.addToRelation("lngextrap",userPolyLng);
+
 //            String csvfile = "./bogdantoader.csv";
 //            loadFromFile(csvfile, user1);
 
 
-            user1.travelInTime(0, new Callback<Node>() {
-                @Override
-                public void on(Node result) {
-                    user1.set(LAT, Type.DOUBLE, 49.632386);
-                    user1.set(LNG, Type.DOUBLE, 6.168544);
-                }
-            });
+            setLanLngNormal(g,user1,0,49.632386,6.168544);
+            setLanLngNormal(g,user1,10,49.732386,6.268544);
+            setLanLngNormal(g,user1,20,49.832386,6.368544);
+            setLanLngNormal(g,user1,30,49.932386,6.468544);
+            setLanLngNormal(g,user1,100,51.932386,7.468544);
 
-            user1.travelInTime(10, new Callback<Node>() {
-                @Override
-                public void on(Node result) {
-                    user1.set(LAT, Type.DOUBLE, 49.612386);
-                    user1.set(LNG, Type.DOUBLE, 6.164544);
-                }
-            });
 
-            user1.travelInTime(20, new Callback<Node>() {
-                @Override
-                public void on(Node result) {
-                    user1.set(LAT, Type.DOUBLE, 49.592386);
-                    user1.set(LNG, Type.DOUBLE, 6.163544);
-                }
-            });
 
-            user1.travelInTime(30, new Callback<Node>() {
-                @Override
-                public void on(Node result) {
-                    user1.set(LAT, Type.DOUBLE, 49.632386);
-                    user1.set(LNG, Type.DOUBLE, 6.162544);
-                }
-            });
+            setLatLngPoly(g,user1,0,49.632386,6.168544);
+            setLatLngPoly(g,user1,10,49.732386,6.268544);
+            setLatLngPoly(g,user1,20,49.832386,6.368544);
+            setLatLngPoly(g,user1,30,49.932386,6.468544);
+            setLatLngPoly(g,user1,100,51.932386,7.468544);
 
 
             Task testNavigation = newTask()
