@@ -9,7 +9,6 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
 import io.undertow.util.StatusCodes;
 import org.mwg.Graph;
-import org.mwg.task.ConditionalFunction;
 import org.mwg.task.Task;
 import org.mwg.task.TaskContext;
 
@@ -45,7 +44,7 @@ public class RESTManager {
 
 
     private Task demo1Task = newTask()
-            .then(setTime("{{processTime}}"))
+            .then(travelInTime("{{processTime}}"))
             .then(readGlobalIndex("users",""))
             .then(setAsVar("users"))
             .thenDo(context -> {

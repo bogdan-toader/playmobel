@@ -10,6 +10,7 @@ import java.io.FileReader;
 
 import static org.mwg.core.task.Actions.*;
 
+
 /**
  * Created by bogdan.toader on 24/10/16.
  */
@@ -65,25 +66,25 @@ public class BackendRunner {
             });
 
 
-            Task testNavigation = org.mwg.core.task.Actions.newTask()
+            Task testNavigation = newTask()
                     .then(println("{{processTime}}"))
-                    .then(org.mwg.core.task.Actions.setTime("{{processTime}}"))  //Ah, it's ok, i just misused functions
-                    .then(org.mwg.core.task.Actions.readGlobalIndex("users", ""))    //we read the index of all users
-                    .forEach(org.mwg.core.task.Actions.newTask()  //for each user
-                            .then(org.mwg.core.task.Actions.defineAsVar("user"))          //save the user
+                    .then(travelInTime("{{processTime}}"))  //Ah, it's ok, i just misused functions
+                    .then(readGlobalIndex("users"))   //we read the index of all users
+                    .forEach(newTask()  //for each user
+                            .then(defineAsVar("user"))          //save the user
                             .then(println("{{result}}")) //I just found a bug in kmf :D :D heheheh
                             //the index is not forwarding the time check: now the time is correct
-                            .then(org.mwg.core.task.Actions.attribute(LAT))                      //get the lat
-                            .then(org.mwg.core.task.Actions.defineAsVar("lat"))           //save the lat
-                            .then(org.mwg.core.task.Actions.readVar("user"))              //reload the user
-                            .then(org.mwg.core.task.Actions.attribute(LNG))                     //get the lng
-                            .then(org.mwg.core.task.Actions.defineAsVar("lng"))           //save the lng
+                            .then(attribute(LAT))                      //get the lat
+                            .then(defineAsVar("lat"))           //save the lat
+                            .then(readVar("user"))              //reload the user
+                            .then(attribute(LNG))                     //get the lng
+                            .then(defineAsVar("lng"))           //save the lng
                             .thenDo(new ActionFunction() {
                                 @Override
-                                public void eval(TaskContext context) {
-                                    System.out.println(context.variable("lat").get(0));
-                                    System.out.println(context.variable("lng").get(0));
-                                    context.continueTask();
+                                public void eval(TaskContext taskContext) {
+                                    System.out.println(taskContext.variable("lat").get(0));
+                                    System.out.println(taskContext.variable("lng").get(0));
+                                    taskContext.continueTask();
                                 }
                             })
                     );
