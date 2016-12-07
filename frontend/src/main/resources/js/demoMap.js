@@ -25,8 +25,6 @@ var DemoMap = function () {
     };
 
 
-
-
     var initMap = function () {
         //PARIS: 48.8523947,2.3462913
         //Luxembourg: 49.632386, 6.168544
@@ -100,8 +98,8 @@ var DemoMap = function () {
         // the only remaining task is to get gps coordinated from the server side
         //for this we create a task ok
 
-        var extrapolation=document.querySelector("[name=field_extrapolation]").checked;
-        if(extrapolation){
+        var extrapolation = document.querySelector("[name=field_extrapolation]").checked;
+        if (extrapolation) {
             console.log("extrapolation mode");
             var context = testNavigationPoly.prepare(graph, null, function (result) {
                 result.free();
@@ -109,7 +107,7 @@ var DemoMap = function () {
             context.setVariable("processTime", selectedTime);
             testNavigationPoly.executeUsing(context);
         }
-        else{
+        else {
             console.log("normal mode");
             var context = testNavigationNormal.prepare(graph, null, function (result) {
                 result.free();
@@ -119,7 +117,7 @@ var DemoMap = function () {
         }
     }
 
-    var actions=org.mwg.core.task.Actions;
+    var actions = org.mwg.core.task.Actions;
 
     var testNavigationNormal = org.mwg.core.task.Actions.newTask()
         .then(actions.travelInTime("{{processTime}}"))  //here we navigate in the requested time
@@ -132,8 +130,7 @@ var DemoMap = function () {
             .then(actions.attribute(LNG))                     //get the lng
             .then(actions.defineAsVar("lng"))           //save the lng
             .thenDo(function (context) {
-                
-                console.log(context.variable("lat").get(0) +","+ context.variable("lng").get(0));
+                console.log(context.variable("lat").get(0) + "," + context.variable("lng").get(0));
                 filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
                 userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
                 context.continueTask();
@@ -145,24 +142,21 @@ var DemoMap = function () {
         .then(actions.readGlobalIndex("users"))    //we read the index of all users
         .forEach(actions.newTask()  //for each user
             .then(actions.defineAsVar("user"))          //save the user
-            .then(actions.traverse("latextrap"))
-            .then(actions.attribute(org.mwg.ml.algorithm.regression.PolynomialNode.VALUE))                      //get the lat
+            .action("readContinuous", "latextrap")
             .then(actions.defineAsVar("lat"))           //save the lat
             .then(actions.readVar("user"))              //reload the user
-            .then(actions.traverse("lngextrap"))
-            .then(actions.attribute(org.mwg.ml.algorithm.regression.PolynomialNode.VALUE))                      //get the lat
+            .action("readContinuous", "lngextrap")
             .then(actions.defineAsVar("lng"))           //save the lng
             .thenDo(function (context) {
                 //here the context will have the user, the lat and the lng at the requested process time ok
                 //alert(context.variable("lat") + " , " + context.variable("lng"));
                 //here are you following? yeess]s
-                console.log(context.variable("lat").get(0) +","+ context.variable("lng").get(0));
+                console.log(context.variable("lat").get(0) + "," + context.variable("lng").get(0));
                 filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
                 userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
                 context.continueTask();
             })
         );
-
 
 
     //You see now the front end is reading from the server, the location of the user, instead of doing an alert, i will update a

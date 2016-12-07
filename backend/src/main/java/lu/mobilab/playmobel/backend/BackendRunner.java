@@ -3,6 +3,7 @@ package lu.mobilab.playmobel.backend;
 import org.mwg.*;
 import org.mwg.ml.MLPlugin;
 import org.mwg.ml.algorithm.regression.PolynomialNode;
+import org.mwg.ml.algorithm.regression.actions.SetContinuous;
 import org.mwg.task.ActionFunction;
 import org.mwg.task.Task;
 import org.mwg.task.TaskContext;
@@ -22,13 +23,10 @@ public class BackendRunner {
     public final static String LNG = "lng";
 
     private static Task setValue = newTask()
-            .travelInTime("{{requestedtime}}")
-            .setAsVar("user")
-            .traverse("latextrap")
-            .set(PolynomialNode.VALUE, Type.DOUBLE, "{{lat}}")
-            .readVar("user")
-            .traverse("lngextrap")
-            .set(PolynomialNode.VALUE, Type.DOUBLE, "{{lng}}");
+            .then(travelInTime("{{requestedtime}}"))
+            .then(action(SetContinuous.NAME, "latextrap", "{{lat}}"))
+            .then(action(SetContinuous.NAME, "lngextrap", "{{lng}}"));
+
 
     //this is a good way of coding where you can replace one function by another :) the first function will do extrapolation
     //the second one will just set the variables ok
