@@ -29,8 +29,7 @@ public class BackendRunner {
     public final static String USERS_INDEX = "users";
 
     public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
-    public final static String LEVEL_DB="/Users/bogdan.toader/Documents/Datasets/leveldb/";
-
+    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
 
     private static Task setValue = newTask()
@@ -66,16 +65,28 @@ public class BackendRunner {
         });
     }
 
+
+    private static void profile(final Graph g, final Node user, final long time, final double lat, final double lng){
+
+    }
+
     private static void setLatLng(final Graph g, final Node user, final long time, final double lat, final double lng) {
+        //1- this line of code save the lat long in a normal way like in any db
         setLanLngNormal(g, user, time, lat, lng);
-        //setLatLngPoly(g, user, time, lat, lng); I will disable this for a mement just to test
+
+        //2- this line of code save the lat long in an ML compressed/extrapolated way
+        //setLatLngPoly(g, user, time, lat, lng); //Here i will not store the data in raw, but the ML compressed version
+
+        //3- One line of code to profile the user
+        //profile(g, user, time, lat, lng);
+        
     }
 
 
     private static Node createUser(Graph g, String userFolderId) {
         // we start by creating a new user Node in the graph
         Node user1 = g.newNode(0, 0);
-        user1.set("folderId",Type.STRING,userFolderId);
+        user1.set("folderId", Type.STRING, userFolderId);
 
         g.index(0, 0, USERS_INDEX, new Callback<NodeIndex>() {
             @Override
@@ -85,13 +96,20 @@ public class BackendRunner {
         });
 
         //here i add the 2 polynomial nodes needed for extrapolation for the lat and lng
+        //where can i get the data set? the data set you use now for this experiment
+        //do you want the link to download or what? yep, will use your code to run // tests etc
+
         Node userPolyLat = g.newTypedNode(0, 0, PolynomialNode.NAME);
-        userPolyLat.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.000001);
+        userPolyLat.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.0001);
         userPolyLat.set(PolynomialNode.MAX_DEGREE, Type.INT, 1);
 
         Node userPolyLng = g.newTypedNode(0, 0, PolynomialNode.NAME);
-        userPolyLng.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.000001);
+        userPolyLng.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.0001);
         userPolyLng.set(PolynomialNode.MAX_DEGREE, Type.INT, 1);
+
+        //and here we need to create a profiler for every user and setup the parameters of the profiler
+        //So basically here 5 lines of code max
+
 
 
         //I add them to the main user
@@ -117,12 +135,6 @@ public class BackendRunner {
         g.connect(connectionResult -> {
 
 
-            //Just one second, I am checking with francois on the name of the files
-            //we can create in the framework a task that gets this automatically
-            //this will be asesome, otherwise I gave to change the code everytime if I have new dataset
-            //no basically this code that i will paste here, should be pasted in kmf
-
-
             Task readFileTask = newTask()
                     .then(ImporterActions.readFiles("{{result}}"))
                     .forEach(newTask()
@@ -137,7 +149,7 @@ public class BackendRunner {
                                     Node user = createUser(context.graph(), userID);
 
 
-                                    System.out.println("Loading data for user: "+userID+", memory: "+context.graph().space().available()+", loaded so far: "+context.variable("dataload").get(0)+" timepoints");
+                                    System.out.println("Loading data for user: " + userID + ", memory: " + context.graph().space().available() + ", loaded so far: " + context.variable("dataload").get(0) + " timepoints");
 
                                     //Then I save in the task context, the path, the user ID, and the user node
                                     context.setVariable("path", path);
@@ -156,18 +168,18 @@ public class BackendRunner {
                                             .thenDo(new ActionFunction() {
                                                 @Override
                                                 public void eval(TaskContext ctx) {
-                                                    String res= (String) ctx.result().get(0);
-                                                    int numOfLine= (int) ctx.variable("i").get(0);
+                                                    String res = (String) ctx.result().get(0);
+                                                    int numOfLine = (int) ctx.variable("i").get(0);
 
-                                                    if(numOfLine>=6){
-                                                        String[] substr= res.split(","); //split the string by comma
+                                                    if (numOfLine >= 6) {
+                                                        String[] substr = res.split(","); //split the string by comma
 
-                                                        Node user= (Node) ctx.variable("user").get(0);
+                                                        Node user = (Node) ctx.variable("user").get(0);
 
-                                                        double lat=Double.parseDouble(substr[0]);
-                                                        double lng=Double.parseDouble(substr[1]);
+                                                        double lat = Double.parseDouble(substr[0]);
+                                                        double lng = Double.parseDouble(substr[1]);
 
-                                                        String dateStr = substr[5]+" "+substr[6];
+                                                        String dateStr = substr[5] + " " + substr[6];
                                                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                                                         LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
 
@@ -175,16 +187,11 @@ public class BackendRunner {
 
                                                         long timestamp = dateTime.toEpochSecond(zoneOffset);
 
-                                                    
+                                                        setLatLng(ctx.graph(), user, timestamp, lat, lng);
 
-                                                        setLatLng(ctx.graph(),user,timestamp,lat,lng);
-
-                                                        int globalCounter=(int) ctx.variable("dataload").get(0);
+                                                        int globalCounter = (int) ctx.variable("dataload").get(0);
                                                         globalCounter++;
-                                                        ctx.setGlobalVariable("dataload",globalCounter);
-
-
-
+                                                        ctx.setGlobalVariable("dataload", globalCounter);
 
                                                     }
                                                     ctx.continueTask();
@@ -195,19 +202,45 @@ public class BackendRunner {
 
                             )
                     )
-                    .then(readVar("dataload"));
+                    .then(readVar("dataload"))
+                    .thenDo(new ActionFunction() {
+                        @Override
+                        public void eval(TaskContext ctx) {
+                            long endtime = System.currentTimeMillis();
+                            long starttime = (long) ctx.variable("start").get(0);
+                            int counter = (int) ctx.result().get(0);
+                            long time = (endtime - starttime) / 1000;
+                            System.out.println("Loaded " + counter + " timepoints in " + time + " seconds");
+                            ctx.continueTask();
+                        }
+                    });
 
 
-            TaskContext ctx=readFileTask.prepare(g, DATA_DIR, new Callback<TaskResult>() {
+            TaskContext ctx = readFileTask.prepare(g, DATA_DIR, new Callback<TaskResult>() {
                 @Override
                 public void on(TaskResult result) {
-                    System.out.println("Loaded: "+result.get(0)+" lines of data");
                     result.free();
                 }
             });
 
-            ctx.setGlobalVariable("dataload",0);
+
+            //It will take a bit more time now because it's running ML algorithms THE extrapolation?
+            //more like compression+extrapolation
+            //I think the connect to the leveldb works already i am checking with francois,
+            //if this is the case, then you need to import to KMF the data only once
+            //using this file
+            //after we create another file where we directly connect to the leveldb and we consider the data will be there :)
+            //ok
+            //the next step, is to add machine learning on the import step, so it creates profiles for each user
+            // this is just maximum 10 lines of code to add here :P
+            //yessss this will be very very interesting
+            //serious????
+
+
+            ctx.setGlobalVariable("start", System.currentTimeMillis());
+            ctx.setGlobalVariable("dataload", 0);
             readFileTask.executeUsing(ctx);
+
 
             //the server will be listening at this port 9011
             WSServer graphServer = new WSServer(g, 9011);
@@ -217,46 +250,6 @@ public class BackendRunner {
             rest.start(g);
         });
     }
-
-    private void loadFromFile(String csvfile, Node user) {
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(csvfile));
-            String line;
-            int count = 0;
-            String[] attributes = null;
-            while ((line = br.readLine()) != null) {
-                String[] cells = line.split(";");
-                if (count == 0) {
-                    attributes = cells;
-                } else {
-                    long time = Long.parseLong(cells[0]);
-
-                    String[] finalAttributes = attributes;
-                    user.travelInTime(time, new Callback<Node>() {
-                        @Override
-                        public void on(Node result) {
-                            for (int i = 1; i < cells.length; i++) {
-                                if (!cells[i].equals("")) {
-                                    try {
-                                        double d = Double.parseDouble(cells[i]);
-                                        result.set(finalAttributes[i], Type.DOUBLE, d);
-                                    } catch (Exception ex) {
-                                        //result.setProperty(finalAttributes[i], Type.STRING, cells[i]);
-                                    }
-                                }
-                            }
-                            result.free();
-                        }
-                    });
-                }
-                count++;
-            }
-            System.out.println("read: " + count + " lines");
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
-
 
     public static void main(String[] args) {
         BackendRunner runner = new BackendRunner();
