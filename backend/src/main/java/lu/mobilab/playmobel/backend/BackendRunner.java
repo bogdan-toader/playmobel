@@ -1,16 +1,19 @@
 package lu.mobilab.playmobel.backend;
 
 import org.mwg.*;
+import org.mwg.importer.ImporterActions;
+import org.mwg.importer.ImporterPlugin;
 import org.mwg.ml.MLPlugin;
 import org.mwg.ml.algorithm.regression.PolynomialNode;
 import org.mwg.ml.algorithm.regression.actions.SetContinuous;
-import org.mwg.task.ActionFunction;
-import org.mwg.task.Task;
-import org.mwg.task.TaskContext;
-import org.mwg.task.TaskResult;
+import org.mwg.task.*;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 import static org.mwg.core.task.Actions.*;
 
@@ -21,6 +24,14 @@ import static org.mwg.core.task.Actions.*;
 public class BackendRunner {
     public final static String LAT = "lat";
     public final static String LNG = "lng";
+    public final static String LATEXTRAP = "latextrap";
+    public final static String LNGEXTRAP = "lngextrap";
+    public final static String USERS_INDEX = "users";
+
+    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+    public final static String LEVEL_DB="/Users/bogdan.toader/Documents/Datasets/leveldb/";
+
+
 
     private static Task setValue = newTask()
             .then(travelInTime("{{requestedtime}}"))
@@ -50,84 +61,153 @@ public class BackendRunner {
             public void on(Node result) {
                 result.set(LAT, Type.DOUBLE, lat);
                 result.set(LNG, Type.DOUBLE, lng);
+                result.free();
             }
         });
     }
+
+    private static void setLatLng(final Graph g, final Node user, final long time, final double lat, final double lng) {
+        setLanLngNormal(g, user, time, lat, lng);
+        //setLatLngPoly(g, user, time, lat, lng); I will disable this for a mement just to test
+    }
+
+
+    private static Node createUser(Graph g, String userFolderId) {
+        // we start by creating a new user Node in the graph
+        Node user1 = g.newNode(0, 0);
+        user1.set("folderId",Type.STRING,userFolderId);
+
+        g.index(0, 0, USERS_INDEX, new Callback<NodeIndex>() {
+            @Override
+            public void on(NodeIndex result) {
+                result.addToIndex(user1);
+            }
+        });
+
+        //here i add the 2 polynomial nodes needed for extrapolation for the lat and lng
+        Node userPolyLat = g.newTypedNode(0, 0, PolynomialNode.NAME);
+        userPolyLat.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.000001);
+        userPolyLat.set(PolynomialNode.MAX_DEGREE, Type.INT, 1);
+
+        Node userPolyLng = g.newTypedNode(0, 0, PolynomialNode.NAME);
+        userPolyLng.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.000001);
+        userPolyLng.set(PolynomialNode.MAX_DEGREE, Type.INT, 1);
+
+
+        //I add them to the main user
+        user1.addToRelation(LATEXTRAP, userPolyLat);
+        user1.addToRelation(LNGEXTRAP, userPolyLng);
+
+        userPolyLat.free();
+        userPolyLng.free();
+
+        //and I return the main user
+        return user1;
+    }
+
 
     public void start() {
 
         final Graph g = new GraphBuilder()
                 .withMemorySize(1000000)
                 .withPlugin(new MLPlugin())
+                .withPlugin(new ImporterPlugin())
+                .withStorage(new LevelDBStorage(LEVEL_DB))
                 .build();
         g.connect(connectionResult -> {
 
 
-            Node userPolyLat = g.newTypedNode(0, 0, PolynomialNode.NAME);
-            userPolyLat.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.0001);
-            Node userPolyLng = g.newTypedNode(0, 0, PolynomialNode.NAME);
-            userPolyLng.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.0001);
+            //Just one second, I am checking with francois on the name of the files
+            //we can create in the framework a task that gets this automatically
+            //this will be asesome, otherwise I gave to change the code everytime if I have new dataset
+            //no basically this code that i will paste here, should be pasted in kmf
 
 
-            Node user1 = g.newNode(0, 0);
-            g.index(0, 0, "users", new Callback<NodeIndex>() {
+            Task readFileTask = newTask()
+                    .then(ImporterActions.readFiles("{{result}}"))
+                    .forEach(newTask()
+                            .thenDo(new ActionFunction() {
+                                @Override
+                                public void eval(TaskContext context) {
+                                    //we start by getting the path of the folder
+                                    String path = (String) context.result().get(0);
+                                    //we do a substring to get the user id
+                                    String userID = path.substring(path.lastIndexOf("/") + 1);
+                                    //we create a user from this id
+                                    Node user = createUser(context.graph(), userID);
+
+
+                                    System.out.println("Loading data for user: "+userID+", memory: "+context.graph().space().available()+", loaded so far: "+context.variable("dataload").get(0)+" timepoints");
+
+                                    //Then I save in the task context, the path, the user ID, and the user node
+                                    context.setVariable("path", path);
+                                    context.setVariable("userID", userID);
+                                    context.setVariable("user", user);
+
+                                    context.continueWith(context.wrap(path + "/Trajectory/")); //Ugly hack to directly reach the foler
+                                    //not to waste time
+
+                                }
+                            })
+                            .then(ImporterActions.readFiles("{{result}}"))
+                            .forEach(newTask()
+                                    .then(ImporterActions.readLines("{{result}}"))
+                                    .forEach(newTask()
+                                            .thenDo(new ActionFunction() {
+                                                @Override
+                                                public void eval(TaskContext ctx) {
+                                                    String res= (String) ctx.result().get(0);
+                                                    int numOfLine= (int) ctx.variable("i").get(0);
+
+                                                    if(numOfLine>=6){
+                                                        String[] substr= res.split(","); //split the string by comma
+
+                                                        Node user= (Node) ctx.variable("user").get(0);
+
+                                                        double lat=Double.parseDouble(substr[0]);
+                                                        double lng=Double.parseDouble(substr[1]);
+
+                                                        String dateStr = substr[5]+" "+substr[6];
+                                                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                                                        LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
+
+                                                        ZoneOffset zoneOffset = ZoneId.of("GMT").getRules().getOffset(dateTime);
+
+                                                        long timestamp = dateTime.toEpochSecond(zoneOffset);
+
+                                                    
+
+                                                        setLatLng(ctx.graph(),user,timestamp,lat,lng);
+
+                                                        int globalCounter=(int) ctx.variable("dataload").get(0);
+                                                        globalCounter++;
+                                                        ctx.setGlobalVariable("dataload",globalCounter);
+
+
+
+
+                                                    }
+                                                    ctx.continueTask();
+                                                }
+                                            })
+                                    )
+                                    .then(save())
+
+                            )
+                    )
+                    .then(readVar("dataload"));
+
+
+            TaskContext ctx=readFileTask.prepare(g, DATA_DIR, new Callback<TaskResult>() {
                 @Override
-                public void on(NodeIndex result) {
-                    result.addToIndex(user1);
+                public void on(TaskResult result) {
+                    System.out.println("Loaded: "+result.get(0)+" lines of data");
+                    result.free();
                 }
             });
 
-
-            user1.addToRelation("latextrap", userPolyLat);
-            user1.addToRelation("lngextrap", userPolyLng);
-
-//            String csvfile = "./bogdantoader.csv";
-//            loadFromFile(csvfile, user1);
-
-            setLanLngNormal(g, user1, 0, 49.632386, 6.168544);
-            setLanLngNormal(g, user1, 10, 49.732386, 6.268544);
-            setLanLngNormal(g, user1, 20, 49.832386, 6.368544);
-            setLanLngNormal(g, user1, 30, 49.932386, 6.468544);
-            setLanLngNormal(g, user1, 100, 51.932386, 7.468544);
-
-
-            setLatLngPoly(g, user1, 0, 49.632386, 6.168544);
-            setLatLngPoly(g, user1, 10, 49.732386, 6.268544);
-            setLatLngPoly(g, user1, 20, 49.832386, 6.368544);
-            setLatLngPoly(g, user1, 30, 49.932386, 6.468544);
-            setLatLngPoly(g, user1, 100, 51.932386, 7.468544);
-
-
-            Task testNavigation = newTask()
-                    .println("{{processTime}}")
-                    .travelInTime("{{processTime}}")  //Ah, it's ok, i just misused functions
-                    .readGlobalIndex("users")   //we read the index of all users
-                    .forEach(newTask()  //for each user
-                            .defineAsVar("user")         //save the user
-                            .println("{{result}}") //I just found a bug in kmf :D :D heheheh
-                            //the index is not forwarding the time check: now the time is correct
-                            .attribute(LAT)                      //get the lat
-                            .defineAsVar("lat")           //save the lat
-                            .readVar("user")              //reload the user
-                            .attribute(LNG)                     //get the lng
-                            .defineAsVar("lng")          //save the lng
-                            .thenDo(new ActionFunction() {
-                                @Override
-                                public void eval(TaskContext taskContext) {
-                                    System.out.println(taskContext.variable("lat").get(0));
-                                    System.out.println(taskContext.variable("lng").get(0));
-                                    taskContext.continueTask();
-                                }
-                            })
-                    );
-
-            TaskContext context = testNavigation.prepare(g, null, taskResult -> {
-                taskResult.free();
-
-            });
-            context.setVariable("processTime", System.currentTimeMillis());
-            testNavigation.executeUsing(context);
-
+            ctx.setGlobalVariable("dataload",0);
+            readFileTask.executeUsing(ctx);
 
             //the server will be listening at this port 9011
             WSServer graphServer = new WSServer(g, 9011);
@@ -176,6 +256,7 @@ public class BackendRunner {
             ex.printStackTrace();
         }
     }
+
 
     public static void main(String[] args) {
         BackendRunner runner = new BackendRunner();

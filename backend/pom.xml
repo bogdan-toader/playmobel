@@ -36,7 +36,16 @@
             <artifactId>ml</artifactId>
             <version>${mwg.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.kevoree.mwg.plugins</groupId>
+            <artifactId>leveldb</artifactId>
+            <version>${mwg.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kevoree.mwg.plugins</groupId>
+            <artifactId>importer</artifactId>
+            <version>${mwg.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi</artifactId>
