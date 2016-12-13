@@ -4,12 +4,9 @@ import org.mwg.*;
 import org.mwg.importer.ImporterActions;
 import org.mwg.importer.ImporterPlugin;
 import org.mwg.ml.MLPlugin;
-import org.mwg.ml.algorithm.regression.PolynomialNode;
-import org.mwg.ml.algorithm.regression.actions.SetContinuous;
 import org.mwg.task.*;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -31,9 +28,8 @@ public class BackendRunner {
 
     public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
     public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
-    public final static String DATA_DIR_SEL=DATA_DIR;
+    public final static String DATA_DIR_SEL = DATA_DIR;
     public final static String LEVEL_DB = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/leveldb/";
-
 
 
 //    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
@@ -43,20 +39,6 @@ public class BackendRunner {
 
 
 
-    private static void setLanLngNormal(final Graph g, final Node user, final long time, final double lat, final double lng) {
-        user.travelInTime(time, new Callback<Node>() {
-            @Override
-            public void on(Node result) {
-                result.set(LAT, Type.DOUBLE, lat);
-                result.set(LNG, Type.DOUBLE, lng);
-                result.free();
-            }
-        });
-    }
-
-    private static void setLatLng(final Graph g, final Node user, final long time, final double lat, final double lng) {
-        setLanLngNormal(g, user, time, lat, lng);
-    }
 
     private static Node createUser(Graph g, String userFolderId) {
         Node user1 = g.newNode(0, 0);
@@ -72,6 +54,9 @@ public class BackendRunner {
 
         return user1;
     }
+
+
+    private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 
     public void start() {
@@ -91,10 +76,9 @@ public class BackendRunner {
                                 public void eval(TaskContext context) {
                                     String path = (String) context.result().get(0);
                                     String userID = path.substring(path.lastIndexOf("/") + 1);
-                                    Node user = createUser(context.graph(), userID);
-                                    System.out.println("Loading data for user: " + userID + ", memory: " + context.graph().space().available() + ", loaded so far: " + context.variable("dataload").get(0) + " timepoints");
                                     context.setVariable("path", path);
                                     context.setVariable("userID", userID);
+                                    Node user = createUser(context.graph(), userID);
                                     context.setVariable("user", user);
                                     context.continueWith(context.wrap(path + "/Trajectory/"));
                                 }
@@ -113,41 +97,67 @@ public class BackendRunner {
                                                         String[] substr = res.split(","); //split the string by comma
                                                         Node user = (Node) ctx.variable("user").get(0);
 
-                                                        double lat = Double.parseDouble(substr[0]);
-                                                        double lng = Double.parseDouble(substr[1]);
+                                                        final double lat = Double.parseDouble(substr[0]);
+                                                        final double lng = Double.parseDouble(substr[1]);
 
                                                         String dateStr = substr[5] + " " + substr[6];
-                                                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
                                                         LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
-
                                                         ZoneOffset zoneOffset = ZoneId.of("GMT").getRules().getOffset(dateTime);
-
-                                                        long timestamp = dateTime.toEpochSecond(zoneOffset)*1000; //to get in ms
-
-                                                        setLatLng(ctx.graph(), user, timestamp, lat, lng);
+                                                        long timestamp = dateTime.toEpochSecond(zoneOffset) * 1000; //to get in ms
 
                                                         int globalCounter = (int) ctx.variable("dataload").get(0);
                                                         globalCounter++;
                                                         ctx.setGlobalVariable("dataload", globalCounter);
 
+                                                        user.travelInTime(timestamp, new Callback<Node>() {
+                                                            @Override
+                                                            public void on(Node result) {
+                                                                result.set(LAT, Type.DOUBLE, lat);
+                                                                result.set(LNG, Type.DOUBLE, lng);
+                                                                result.free();
+                                                                ctx.continueTask();
+                                                            }
+                                                        });
+
+                                                    } else {
+                                                        ctx.continueTask();
                                                     }
-                                                    ctx.continueTask();
                                                 }
                                             })
                                     )
                                     .then(save())
-
                             )
+                            .thenDo(new ActionFunction() {
+                                @Override
+                                public void eval(TaskContext ctx) {
+                                    long endtime = System.currentTimeMillis();
+                                    long starttime = (long) ctx.variable("start").get(0);
+                                    int counter = (int) ctx.variable("dataload").get(0);
+                                    long time = (endtime - starttime) / 1000;
+                                    double speed = counter;
+                                    speed = speed / time;
+
+                                    DecimalFormat df = new DecimalFormat("###,###.##");
+                                    String userID = (String) ctx.variable("userID").get(0);
+                                    System.out.println("Loaded user: " + userID + ", total: " + ctx.variable("dataload").get(0) + " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
+                                    ctx.continueTask();
+                                }
+                            })
                     )
-                    .then(readVar("dataload"))
                     .thenDo(new ActionFunction() {
                         @Override
                         public void eval(TaskContext ctx) {
                             long endtime = System.currentTimeMillis();
                             long starttime = (long) ctx.variable("start").get(0);
-                            int counter = (int) ctx.result().get(0);
+                            int counter = (int) ctx.variable("dataload").get(0);
                             long time = (endtime - starttime) / 1000;
-                            System.out.println("Loaded " + counter + " timepoints in " + time + " seconds");
+                            double speed = counter;
+                            speed = speed / time;
+
+                            DecimalFormat df = new DecimalFormat("###,###.##");
+
+                            System.out.println("Loaded " + counter + " timepoints in " + time + " seconds, speed: " + df.format(speed) + " values/sec");
                             ctx.continueTask();
                         }
                     });
