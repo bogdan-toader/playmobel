@@ -66,6 +66,8 @@ public class BackendRunner {
                 .withPlugin(new MLPlugin())
                 .withPlugin(new ImporterPlugin())
                 .withStorage(new LevelDBStorage(LEVEL_DB))
+//                .withPlugin(new OffHeapMemoryPlugin())
+//                .withScheduler(new HybridScheduler())
                 .build();
         g.connect(connectionResult -> {
             Task readFileTask = newTask()
@@ -76,10 +78,10 @@ public class BackendRunner {
                                 public void eval(TaskContext context) {
                                     String path = (String) context.result().get(0);
                                     String userID = path.substring(path.lastIndexOf("/") + 1);
-                                    context.setVariable("path", path);
-                                    context.setVariable("userID", userID);
+                                    context.defineVariable("path", path);
+                                    context.defineVariable("userID", userID);
                                     Node user = createUser(context.graph(), userID);
-                                    context.setVariable("user", user);
+                                    context.defineVariable("user", user);
                                     context.continueWith(context.wrap(path + "/Trajectory/"));
                                 }
                             })
@@ -161,6 +163,7 @@ public class BackendRunner {
                             ctx.continueTask();
                         }
                     });
+
 
 
             TaskContext ctx = readFileTask.prepare(g, DATA_DIR_SEL, new Callback<TaskResult>() {
