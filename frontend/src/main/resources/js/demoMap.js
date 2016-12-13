@@ -125,7 +125,6 @@ var DemoMap = function () {
             .then(actions.travelInTime("{{processTime}}"))
             .then(actions.readGlobalIndex("users"))
             .thenDo(function (context) {
-                alert(context.result().size());
                 context.continueTask();
             })
             .forEach(actions.newTask()
@@ -135,11 +134,13 @@ var DemoMap = function () {
                     var lng = user.get("lng");
                     var userID = user.get("folderId");
                     if (lat != null && lng != null) {
-                        addMarker(userID, lat, lng, context);
                         var counter = context.variable("counter").get(0) + 1;
                         context.setGlobalVariable("counter", counter);
+                        addMarker(userID, lat, lng, context);
                     }
-                    context.continueTask();
+                    else {
+                        context.continueTask();
+                    }
                 })
             )
             .thenDo(function (context) {
@@ -148,7 +149,7 @@ var DemoMap = function () {
                 var counter= context.variable("counter").get(0);
 
                 var processtime = endtime - starttime;
-                document.getElementById('messagelbl').innerHTML = "loaded "+counter+" users in: " + parseFloat(processtime).toFixed(2); + " ms";
+                document.getElementById('messagelbl').innerHTML = "loaded "+counter+" users in: " + parseFloat(processtime).toFixed(2)+ " ms";
                 context.continueTask();
             })
         ;
