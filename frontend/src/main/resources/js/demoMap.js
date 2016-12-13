@@ -8,21 +8,33 @@ var DemoMap = function () {
     var filterCircle;
     var markers;
     var graph;
+    var flatpickr;
 
 
-    var init = function () {
 
-        //here the graph is connected at the same port
-        graph = new org.mwg.GraphBuilder()
-            .withStorage(new org.mwg.plugin.WSClient("ws://" + window.location.hostname + ":9011"))
-            .withPlugin(new org.mwg.structure.StructurePlugin())
-            .withPlugin(new org.mwg.ml.MLPlugin()).build();
-        graph.connect(function () {
+    function getTimeStamp(year, month, day, hour, min, sec){
+        var parsedUnixTime = new Date();
+        parsedUnixTime.setUTCFullYear(year);
+        parsedUnixTime.setUTCMonth(month);
+        parsedUnixTime.setUTCDate(day);
+        parsedUnixTime.setUTCHours(hour);
+        parsedUnixTime.setUTCMinutes(min);
+        parsedUnixTime.setUTCSeconds(sec);
+        parsedUnixTime.setUTCMilliseconds(0);
+        return parsedUnixTime.getTime();
+    }
 
+
+    var initFlatPickr = function () {
+        flatpickr = document.querySelector(".flatpickr").flatpickr({
+            defaultDate: "2008-10-23T02:53:04",
+            enableTime: true,
+            enableSeconds: true,
+            onChange: function (dateObject, dateString) {
+                updateTime();
+            }
         });
-
-        initMap();
-    };
+    }
 
 
     var initMap = function () {
@@ -33,7 +45,7 @@ var DemoMap = function () {
             attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
             maxZoom: 18,
             id: 'test',
-            accessToken: 'pk.eyJ1IjoiYm9nZGFudG9hZGVyIiwiYSI6ImNpd2RpejNkMjAwOW0yeWs0NTJ2c2Uxcm4ifQ.PrdepIo60YlnfnqQv4FWug' //replace your token here look here
+            accessToken: 'pk.eyJ1IjoiYm9nZGFudG9hZGVyIiwiYSI6ImNpd2RpejNkMjAwOW0yeWs0NTJ2c2Uxcm4ifQ.PrdepIo60YlnfnqQv4FWug'
 
         }).on('load', function (e) {
             //document.querySelector("#map_init").textContent = document.querySelector("#map_init").textContent + "... Done !";
@@ -52,11 +64,27 @@ var DemoMap = function () {
 
     };
 
+
+    var init = function () {
+
+        initFlatPickr();
+        initMap();
+
+        //here the graph is connected at the same port
+        graph = new org.mwg.GraphBuilder()
+            .withStorage(new org.mwg.plugin.WSClient("ws://" + window.location.hostname + ":9011"))
+            .withPlugin(new org.mwg.structure.StructurePlugin())
+            .withPlugin(new org.mwg.ml.MLPlugin()).build();
+        graph.connect(function () {
+
+        });
+    };
+
+
     var initiateUserPosition = function () {
         //Luxembourg: 49.632386, 6.168544
         //PARIS: 48.8344884,2.3716972
         addUserPositionMarker(49.632386, 6.168544);
-        addFilterCircle(49.632386, 6.168544)
         //}
     };
 
@@ -91,30 +119,31 @@ var DemoMap = function () {
     };
 
     function updateTime() {
-        var form = document.querySelector("#filter_form");
-        var selectedTime = form.querySelector("[name=field_time]").value;
-        //alert(selectedTime);
-        //As you see at this point, here we have the selected time in variable reaching from the client side
-        // the only remaining task is to get gps coordinated from the server side
-        //for this we create a task ok
 
-        var extrapolation = document.querySelector("[name=field_extrapolation]").checked;
-        if (extrapolation) {
-            console.log("extrapolation mode");
-            var context = testNavigationPoly.prepare(graph, null, function (result) {
-                result.free();
-            });
-            context.setVariable("processTime", selectedTime);
-            testNavigationPoly.executeUsing(context);
-        }
-        else {
-            console.log("normal mode");
-            var context = testNavigationNormal.prepare(graph, null, function (result) {
-                result.free();
-            });
-            context.setVariable("processTime", selectedTime);
-            testNavigationNormal.executeUsing(context);
-        }
+        var dateObject=flatpickr.selectedDateObj;
+        var timestamp= getTimeStamp(dateObject.getFullYear(),dateObject.getMonth(),dateObject.getDate(),dateObject.getHours(),dateObject.getMinutes(),dateObject.getSeconds());
+        alert(timestamp);
+
+
+        // var form = document.querySelector("#filter_form");
+        // var selectedTime = form.querySelector("[name=field_time]").value;
+        // var extrapolation = document.querySelector("[name=field_extrapolation]").checked;
+        // if (extrapolation) {
+        //     console.log("extrapolation mode");
+        //     var context = testNavigationPoly.prepare(graph, null, function (result) {
+        //         result.free();
+        //     });
+        //     context.setVariable("processTime", selectedTime);
+        //     testNavigationPoly.executeUsing(context);
+        // }
+        // else {
+        //     console.log("normal mode");
+        //     var context = testNavigationNormal.prepare(graph, null, function (result) {
+        //         result.free();
+        //     });
+        //     context.setVariable("processTime", selectedTime);
+        //     testNavigationNormal.executeUsing(context);
+        // }
     }
 
     var actions = org.mwg.core.task.Actions;
@@ -138,33 +167,23 @@ var DemoMap = function () {
         );
 
     var testNavigationPoly = org.mwg.core.task.Actions.newTask()
-        .then(actions.travelInTime("{{processTime}}"))  //here we navigate in the requested time
-        .then(actions.readGlobalIndex("users"))    //we read the index of all users
-        .forEach(actions.newTask()  //for each user
-            .then(actions.defineAsVar("user"))          //save the user
+        .then(actions.travelInTime("{{processTime}}"))
+        .then(actions.readGlobalIndex("users"))
+        .forEach(actions.newTask()
+            .then(actions.defineAsVar("user"))
             .action("readContinuous", "latextrap")
-            .then(actions.defineAsVar("lat"))           //save the lat
-            .then(actions.readVar("user"))              //reload the user
+            .then(actions.defineAsVar("lat"))
+            .then(actions.readVar("user"))
             .action("readContinuous", "lngextrap")
-            .then(actions.defineAsVar("lng"))           //save the lng
+            .then(actions.defineAsVar("lng"))
             .thenDo(function (context) {
-                //here the context will have the user, the lat and the lng at the requested process time ok
-                //alert(context.variable("lat") + " , " + context.variable("lng"));
-                //here are you following? yeess]s
+
                 console.log(context.variable("lat").get(0) + "," + context.variable("lng").get(0));
                 filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
                 userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
                 context.continueTask();
             })
         );
-
-
-    //You see now the front end is reading from the server, the location of the user, instead of doing an alert, i will update a
-    // Is it easy? woooow man how cool it is! :D.
-    //Now you see with a normal Node, it jumps from one point to another
-    //because from 0->10 it resolves one node, from 10->20 another etc
-    //is this clear why the point jumps on the map ? yessss
-    ///Now will add a Machine leanring extrapolation between points
 
 
     return {

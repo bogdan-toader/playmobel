@@ -29,6 +29,8 @@ public class BackendRunner {
     public final static String USERS_INDEX = "users";
 
     public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+
     public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
 
@@ -36,10 +38,6 @@ public class BackendRunner {
             .then(travelInTime("{{requestedtime}}"))
             .then(action(SetContinuous.NAME, "latextrap", "{{lat}}"))
             .then(action(SetContinuous.NAME, "lngextrap", "{{lng}}"));
-
-
-    //this is a good way of coding where you can replace one function by another :) the first function will do extrapolation
-    //the second one will just set the variables ok
 
     private static void setLatLngPoly(final Graph g, final Node user, final long time, final double lat, final double lng) {
         TaskContext context = setValue.prepare(g, user, new Callback<TaskResult>() {
@@ -71,15 +69,11 @@ public class BackendRunner {
     }
 
     private static void setLatLng(final Graph g, final Node user, final long time, final double lat, final double lng) {
-        //1- this line of code save the lat long in a normal way like in any db
         setLanLngNormal(g, user, time, lat, lng);
+        //setLatLngPoly(g, user, time, lat, lng);
 
-        //2- this line of code save the lat long in an ML compressed/extrapolated way
-        //setLatLngPoly(g, user, time, lat, lng); //Here i will not store the data in raw, but the ML compressed version
-
-        //3- One line of code to profile the user
         //profile(g, user, time, lat, lng);
-        
+
     }
 
 
@@ -95,10 +89,6 @@ public class BackendRunner {
             }
         });
 
-        //here i add the 2 polynomial nodes needed for extrapolation for the lat and lng
-        //where can i get the data set? the data set you use now for this experiment
-        //do you want the link to download or what? yep, will use your code to run // tests etc
-
         Node userPolyLat = g.newTypedNode(0, 0, PolynomialNode.NAME);
         userPolyLat.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.0001);
         userPolyLat.set(PolynomialNode.MAX_DEGREE, Type.INT, 1);
@@ -107,19 +97,13 @@ public class BackendRunner {
         userPolyLng.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.0001);
         userPolyLng.set(PolynomialNode.MAX_DEGREE, Type.INT, 1);
 
-        //and here we need to create a profiler for every user and setup the parameters of the profiler
-        //So basically here 5 lines of code max
 
-
-
-        //I add them to the main user
         user1.addToRelation(LATEXTRAP, userPolyLat);
         user1.addToRelation(LNGEXTRAP, userPolyLng);
 
         userPolyLat.free();
         userPolyLng.free();
 
-        //and I return the main user
         return user1;
     }
 
@@ -141,24 +125,18 @@ public class BackendRunner {
                             .thenDo(new ActionFunction() {
                                 @Override
                                 public void eval(TaskContext context) {
-                                    //we start by getting the path of the folder
                                     String path = (String) context.result().get(0);
-                                    //we do a substring to get the user id
                                     String userID = path.substring(path.lastIndexOf("/") + 1);
-                                    //we create a user from this id
                                     Node user = createUser(context.graph(), userID);
 
 
                                     System.out.println("Loading data for user: " + userID + ", memory: " + context.graph().space().available() + ", loaded so far: " + context.variable("dataload").get(0) + " timepoints");
 
-                                    //Then I save in the task context, the path, the user ID, and the user node
                                     context.setVariable("path", path);
                                     context.setVariable("userID", userID);
                                     context.setVariable("user", user);
 
-                                    context.continueWith(context.wrap(path + "/Trajectory/")); //Ugly hack to directly reach the foler
-                                    //not to waste time
-
+                                    context.continueWith(context.wrap(path + "/Trajectory/"));
                                 }
                             })
                             .then(ImporterActions.readFiles("{{result}}"))
@@ -185,7 +163,8 @@ public class BackendRunner {
 
                                                         ZoneOffset zoneOffset = ZoneId.of("GMT").getRules().getOffset(dateTime);
 
-                                                        long timestamp = dateTime.toEpochSecond(zoneOffset);
+                                                        long timestamp = dateTime.toEpochSecond(zoneOffset)*1000; //to get in ms
+
 
                                                         setLatLng(ctx.graph(), user, timestamp, lat, lng);
 
@@ -216,25 +195,15 @@ public class BackendRunner {
                     });
 
 
-            TaskContext ctx = readFileTask.prepare(g, DATA_DIR, new Callback<TaskResult>() {
+
+
+            TaskContext ctx = readFileTask.prepare(g, DATA_DIR_TEST, new Callback<TaskResult>() {
                 @Override
                 public void on(TaskResult result) {
                     result.free();
                 }
             });
 
-
-            //It will take a bit more time now because it's running ML algorithms THE extrapolation?
-            //more like compression+extrapolation
-            //I think the connect to the leveldb works already i am checking with francois,
-            //if this is the case, then you need to import to KMF the data only once
-            //using this file
-            //after we create another file where we directly connect to the leveldb and we consider the data will be there :)
-            //ok
-            //the next step, is to add machine learning on the import step, so it creates profiles for each user
-            // this is just maximum 10 lines of code to add here :P
-            //yessss this will be very very interesting
-            //serious????
 
 
             ctx.setGlobalVariable("start", System.currentTimeMillis());
