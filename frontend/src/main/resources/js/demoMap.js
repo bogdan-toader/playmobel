@@ -52,11 +52,6 @@ var DemoMap = function () {
             //document.querySelector("#map_init").textContent = document.querySelector("#map_init").textContent + "... Done !";
         }).addTo(mymap);
 
-        // mymap.on('click', function (event) {
-        //     //updateNearest(e);
-        //     userPositionMarker.setLatLng([event.latlng.lat, event.latlng.lng]);
-        // });
-
         markers = new L.layerGroup();
         markers.addTo(mymap);
     };
@@ -153,44 +148,6 @@ var DemoMap = function () {
                 context.continueTask();
             })
         ;
-
-    /*
-     var testNavigationNormal = org.mwg.core.task.Actions.newTask()
-     .then(actions.travelInTime("{{processTime}}"))  //here we navigate in the requested time
-     .then(actions.readGlobalIndex("users"))    //we read the index of all users
-     .forEach(actions.newTask()  //for each user
-     .then(actions.defineAsVar("user"))          //save the user
-     .then(actions.attribute(LAT))                      //get the lat
-     .then(actions.defineAsVar("lat"))           //save the lat
-     .then(actions.readVar("user"))              //reload the user
-     .then(actions.attribute(LNG))                     //get the lng
-     .then(actions.defineAsVar("lng"))           //save the lng
-     .thenDo(function (context) {
-     var userID = context.variable("user").get(0).get("folderId");
-     filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
-     userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
-     context.continueTask();
-     })
-     );
-
-     var testNavigationPoly = org.mwg.core.task.Actions.newTask()
-     .then(actions.travelInTime("{{processTime}}"))
-     .then(actions.readGlobalIndex("users"))
-     .forEach(actions.newTask()
-     .then(actions.defineAsVar("user"))
-     .action("readContinuous", "latextrap")
-     .then(actions.defineAsVar("lat"))
-     .then(actions.readVar("user"))
-     .action("readContinuous", "lngextrap")
-     .then(actions.defineAsVar("lng"))
-     .thenDo(function (context) {
-
-     console.log(context.variable("lat").get(0) + "," + context.variable("lng").get(0));
-     filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
-     userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
-     context.continueTask();
-     })
-     );*/
 
 
     return {

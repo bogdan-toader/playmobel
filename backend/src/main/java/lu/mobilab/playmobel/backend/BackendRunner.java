@@ -42,25 +42,6 @@ public class BackendRunner {
 //    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
 
-    private static Task setValue = newTask()
-            .then(travelInTime("{{requestedtime}}"))
-            .then(action(SetContinuous.NAME, "latextrap", "{{lat}}"))
-            .then(action(SetContinuous.NAME, "lngextrap", "{{lng}}"));
-
-
-
-    private static void setLatLngPoly(final Graph g, final Node user, final long time, final double lat, final double lng) {
-        TaskContext context = setValue.prepare(g, user, new Callback<TaskResult>() {
-            @Override
-            public void on(TaskResult result) {
-                result.free();
-            }
-        });
-        context.setGlobalVariable("requestedtime", time);
-        context.setGlobalVariable("lat", lat);
-        context.setGlobalVariable("lng", lng);
-        setValue.executeUsing(context);
-    }
 
     private static void setLanLngNormal(final Graph g, final Node user, final long time, final double lat, final double lng) {
         user.travelInTime(time, new Callback<Node>() {
@@ -73,22 +54,11 @@ public class BackendRunner {
         });
     }
 
-
-    private static void profile(final Graph g, final Node user, final long time, final double lat, final double lng){
-
-    }
-
     private static void setLatLng(final Graph g, final Node user, final long time, final double lat, final double lng) {
         setLanLngNormal(g, user, time, lat, lng);
-        //setLatLngPoly(g, user, time, lat, lng);
-
-        //profile(g, user, time, lat, lng);
-
     }
 
-
     private static Node createUser(Graph g, String userFolderId) {
-        // we start by creating a new user Node in the graph
         Node user1 = g.newNode(0, 0);
         user1.set("folderId", Type.STRING, userFolderId);
 
@@ -99,20 +69,6 @@ public class BackendRunner {
             }
         });
 
-        Node userPolyLat = g.newTypedNode(0, 0, PolynomialNode.NAME);
-        userPolyLat.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.0001);
-        userPolyLat.set(PolynomialNode.MAX_DEGREE, Type.INT, 1);
-
-        Node userPolyLng = g.newTypedNode(0, 0, PolynomialNode.NAME);
-        userPolyLng.set(PolynomialNode.PRECISION, Type.DOUBLE, 0.0001);
-        userPolyLng.set(PolynomialNode.MAX_DEGREE, Type.INT, 1);
-
-
-        user1.addToRelation(LATEXTRAP, userPolyLat);
-        user1.addToRelation(LNGEXTRAP, userPolyLng);
-
-        userPolyLat.free();
-        userPolyLng.free();
 
         return user1;
     }
@@ -127,8 +83,6 @@ public class BackendRunner {
                 .withStorage(new LevelDBStorage(LEVEL_DB))
                 .build();
         g.connect(connectionResult -> {
-
-
             Task readFileTask = newTask()
                     .then(ImporterActions.readFiles("{{result}}"))
                     .forEach(newTask()
@@ -138,14 +92,10 @@ public class BackendRunner {
                                     String path = (String) context.result().get(0);
                                     String userID = path.substring(path.lastIndexOf("/") + 1);
                                     Node user = createUser(context.graph(), userID);
-
-
                                     System.out.println("Loading data for user: " + userID + ", memory: " + context.graph().space().available() + ", loaded so far: " + context.variable("dataload").get(0) + " timepoints");
-
                                     context.setVariable("path", path);
                                     context.setVariable("userID", userID);
                                     context.setVariable("user", user);
-
                                     context.continueWith(context.wrap(path + "/Trajectory/"));
                                 }
                             })
@@ -161,7 +111,6 @@ public class BackendRunner {
 
                                                     if (numOfLine >= 6) {
                                                         String[] substr = res.split(","); //split the string by comma
-
                                                         Node user = (Node) ctx.variable("user").get(0);
 
                                                         double lat = Double.parseDouble(substr[0]);
@@ -174,7 +123,6 @@ public class BackendRunner {
                                                         ZoneOffset zoneOffset = ZoneId.of("GMT").getRules().getOffset(dateTime);
 
                                                         long timestamp = dateTime.toEpochSecond(zoneOffset)*1000; //to get in ms
-
 
                                                         setLatLng(ctx.graph(), user, timestamp, lat, lng);
 
@@ -212,12 +160,9 @@ public class BackendRunner {
                 }
             });
 
-
-
             ctx.setGlobalVariable("start", System.currentTimeMillis());
             ctx.setGlobalVariable("dataload", 0);
             readFileTask.executeUsing(ctx);
-
 
             //the server will be listening at this port 9011
             WSServer graphServer = new WSServer(g, 9011);
