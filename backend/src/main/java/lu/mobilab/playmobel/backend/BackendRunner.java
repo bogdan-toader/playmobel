@@ -28,16 +28,26 @@ public class BackendRunner {
     public final static String LNGEXTRAP = "lngextrap";
     public final static String USERS_INDEX = "users";
 
-    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
-    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
 
-    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
+    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_DIR_SEL=DATA_DIR;
+    public final static String LEVEL_DB = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/leveldb/";
+
+
+
+//    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+//    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+//    public final static String DATA_DIR_SEL=DATA_DIR;
+//    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
 
     private static Task setValue = newTask()
             .then(travelInTime("{{requestedtime}}"))
             .then(action(SetContinuous.NAME, "latextrap", "{{lat}}"))
             .then(action(SetContinuous.NAME, "lngextrap", "{{lng}}"));
+
+
 
     private static void setLatLngPoly(final Graph g, final Node user, final long time, final double lat, final double lng) {
         TaskContext context = setValue.prepare(g, user, new Callback<TaskResult>() {
@@ -195,9 +205,7 @@ public class BackendRunner {
                     });
 
 
-
-
-            TaskContext ctx = readFileTask.prepare(g, DATA_DIR_TEST, new Callback<TaskResult>() {
+            TaskContext ctx = readFileTask.prepare(g, DATA_DIR_SEL, new Callback<TaskResult>() {
                 @Override
                 public void on(TaskResult result) {
                     result.free();

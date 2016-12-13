@@ -3,16 +3,16 @@ var DemoMap = function () {
     var LAT = "lat";
     var LNG = "lng";
 
-    var mymap;
-    var userPositionMarker;
-    var filterCircle;
-    var markers;
-    var graph;
-    var flatpickr;
+    var DEFAULT_LAT = 49.632386;
+    var DEFAULT_LNG = 6.168544;
+
+    var mymap; //the map object
+    var graph; //the kmf graph
+    var flatpickr; //the timedate selector
+    var markers; //all the user markers
 
 
-
-    function getTimeStamp(year, month, day, hour, min, sec){
+    function getTimeStamp(year, month, day, hour, min, sec) {
         var parsedUnixTime = new Date();
         parsedUnixTime.setUTCFullYear(year);
         parsedUnixTime.setUTCMonth(month);
@@ -40,7 +40,8 @@ var DemoMap = function () {
     var initMap = function () {
         //PARIS: 48.8523947,2.3462913
         //Luxembourg: 49.632386, 6.168544
-        mymap = L.map('mapid').setView([49.632386, 6.168544], 12);
+        //China:39.984702,116.318417
+        mymap = L.map('mapid').setView([39.984702, 116.318417], 7);
         L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/256/{z}/{x}/{y}?access_token={accessToken}', {
             attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
             maxZoom: 18,
@@ -51,17 +52,13 @@ var DemoMap = function () {
             //document.querySelector("#map_init").textContent = document.querySelector("#map_init").textContent + "... Done !";
         }).addTo(mymap);
 
-        mymap.on('click', function (event) {
-            //updateNearest(e);
-            userPositionMarker.setLatLng([event.latlng.lat, event.latlng.lng]);
-            filterCircle.setLatLng([event.latlng.lat, event.latlng.lng]);
-        });
+        // mymap.on('click', function (event) {
+        //     //updateNearest(e);
+        //     userPositionMarker.setLatLng([event.latlng.lat, event.latlng.lng]);
+        // });
 
         markers = new L.layerGroup();
         markers.addTo(mymap);
-
-        initiateUserPosition();
-
     };
 
 
@@ -76,114 +73,123 @@ var DemoMap = function () {
             .withPlugin(new org.mwg.structure.StructurePlugin())
             .withPlugin(new org.mwg.ml.MLPlugin()).build();
         graph.connect(function () {
+            updateTime();
 
         });
+
+
     };
 
 
-    var initiateUserPosition = function () {
-        //Luxembourg: 49.632386, 6.168544
-        //PARIS: 48.8344884,2.3716972
-        addUserPositionMarker(49.632386, 6.168544);
-        //}
-    };
-
-    var addUserPositionMarker = function (lat, lng) {
-        userPositionMarker = L.marker([lat, lng], {
-            icon: L.icon({
-                iconUrl: 'img/red_pin.png',
-                iconAnchor: [15, 44],
-                iconSize: [30, 44],
-            }),
-            draggable: true,
-            zIndexOffset: 1000
-        }).bindPopup("Your position").addTo(mymap);
-
-        userPositionMarker["lastDrag"] = (new Date()).getTime();
-
-        userPositionMarker.on("drag", function (event) {
-            filterCircle.setLatLng([event.latlng.lat, event.latlng.lng]);
-            if (((new Date()).getTime() - userPositionMarker.lastDrag) > 100) { // threshold
-                userPositionMarker["lastDrag"] = (new Date()).getTime();
-            }
+    function addMarker(nodeID, lat, lng, context) {
+        var marker = L.marker([lat, lng])
+            .bindPopup("user Id: " + nodeID);
+        marker["node"] = nodeID;
+        marker.on('click', function (e) {
+            alert("user Id: " + e.target.node + " (lat,lng): " + e.latlng.lat + "," + e.latlng.lng);
         });
-
-
+        markers.addLayer(marker);
+        context.continueTask();
     };
-    var addFilterCircle = function (lat, lng) {
-        filterCircle = L.circle([lat, lng], 2000).addTo(mymap);
-    };
+
 
     var getGraph = function () {
         return graph;
     };
 
+    function getSelectedTime() {
+        var dateObject = flatpickr.selectedDateObj;
+        var timestamp = getTimeStamp(dateObject.getFullYear(), dateObject.getMonth(), dateObject.getDate(), dateObject.getHours(), dateObject.getMinutes(), dateObject.getSeconds());
+        return timestamp;
+    }
+
     function updateTime() {
+        var timestamp = getSelectedTime();
+        var context = createAllUsersTask.prepare(graph, null, function (result) {
+            result.free();
+        });
+        context.setVariable("processTime", timestamp);
+        createAllUsersTask.executeUsing(context);
 
-        var dateObject=flatpickr.selectedDateObj;
-        var timestamp= getTimeStamp(dateObject.getFullYear(),dateObject.getMonth(),dateObject.getDate(),dateObject.getHours(),dateObject.getMinutes(),dateObject.getSeconds());
-        alert(timestamp);
-
-
-        // var form = document.querySelector("#filter_form");
-        // var selectedTime = form.querySelector("[name=field_time]").value;
-        // var extrapolation = document.querySelector("[name=field_extrapolation]").checked;
-        // if (extrapolation) {
-        //     console.log("extrapolation mode");
-        //     var context = testNavigationPoly.prepare(graph, null, function (result) {
-        //         result.free();
-        //     });
-        //     context.setVariable("processTime", selectedTime);
-        //     testNavigationPoly.executeUsing(context);
-        // }
-        // else {
-        //     console.log("normal mode");
-        //     var context = testNavigationNormal.prepare(graph, null, function (result) {
-        //         result.free();
-        //     });
-        //     context.setVariable("processTime", selectedTime);
-        //     testNavigationNormal.executeUsing(context);
-        // }
     }
 
     var actions = org.mwg.core.task.Actions;
 
-    var testNavigationNormal = org.mwg.core.task.Actions.newTask()
-        .then(actions.travelInTime("{{processTime}}"))  //here we navigate in the requested time
-        .then(actions.readGlobalIndex("users"))    //we read the index of all users
-        .forEach(actions.newTask()  //for each user
-            .then(actions.defineAsVar("user"))          //save the user
-            .then(actions.attribute(LAT))                      //get the lat
-            .then(actions.defineAsVar("lat"))           //save the lat
-            .then(actions.readVar("user"))              //reload the user
-            .then(actions.attribute(LNG))                     //get the lng
-            .then(actions.defineAsVar("lng"))           //save the lng
+    var createAllUsersTask = org.mwg.core.task.Actions.newTask()
             .thenDo(function (context) {
-                console.log(context.variable("lat").get(0) + "," + context.variable("lng").get(0));
-                filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
-                userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+                context.addToGlobalVariable("startTime", performance.now());
+                context.addToGlobalVariable("counter", 0);
+                markers.clearLayers();
                 context.continueTask();
             })
-        );
-
-    var testNavigationPoly = org.mwg.core.task.Actions.newTask()
-        .then(actions.travelInTime("{{processTime}}"))
-        .then(actions.readGlobalIndex("users"))
-        .forEach(actions.newTask()
-            .then(actions.defineAsVar("user"))
-            .action("readContinuous", "latextrap")
-            .then(actions.defineAsVar("lat"))
-            .then(actions.readVar("user"))
-            .action("readContinuous", "lngextrap")
-            .then(actions.defineAsVar("lng"))
+            .then(actions.travelInTime("{{processTime}}"))
+            .then(actions.readGlobalIndex("users"))
             .thenDo(function (context) {
-
-                console.log(context.variable("lat").get(0) + "," + context.variable("lng").get(0));
-                filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
-                userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+                alert(context.result().size());
                 context.continueTask();
             })
-        );
+            .forEach(actions.newTask()
+                .thenDo(function (context) {
+                    var user = context.result().get(0);
+                    var lat = user.get("lat");
+                    var lng = user.get("lng");
+                    var userID = user.get("folderId");
+                    if (lat != null && lng != null) {
+                        addMarker(userID, lat, lng, context);
+                        var counter = context.variable("counter").get(0) + 1;
+                        context.setGlobalVariable("counter", counter);
+                    }
+                    context.continueTask();
+                })
+            )
+            .thenDo(function (context) {
+                var endtime = performance.now();
+                var starttime = context.variable("startTime").get(0);
+                var counter= context.variable("counter").get(0);
+
+                var processtime = endtime - starttime;
+                document.getElementById('messagelbl').innerHTML = "loaded "+counter+" users in: " + parseFloat(processtime).toFixed(2); + " ms";
+                context.continueTask();
+            })
+        ;
+
+    /*
+     var testNavigationNormal = org.mwg.core.task.Actions.newTask()
+     .then(actions.travelInTime("{{processTime}}"))  //here we navigate in the requested time
+     .then(actions.readGlobalIndex("users"))    //we read the index of all users
+     .forEach(actions.newTask()  //for each user
+     .then(actions.defineAsVar("user"))          //save the user
+     .then(actions.attribute(LAT))                      //get the lat
+     .then(actions.defineAsVar("lat"))           //save the lat
+     .then(actions.readVar("user"))              //reload the user
+     .then(actions.attribute(LNG))                     //get the lng
+     .then(actions.defineAsVar("lng"))           //save the lng
+     .thenDo(function (context) {
+     var userID = context.variable("user").get(0).get("folderId");
+     filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+     userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+     context.continueTask();
+     })
+     );
+
+     var testNavigationPoly = org.mwg.core.task.Actions.newTask()
+     .then(actions.travelInTime("{{processTime}}"))
+     .then(actions.readGlobalIndex("users"))
+     .forEach(actions.newTask()
+     .then(actions.defineAsVar("user"))
+     .action("readContinuous", "latextrap")
+     .then(actions.defineAsVar("lat"))
+     .then(actions.readVar("user"))
+     .action("readContinuous", "lngextrap")
+     .then(actions.defineAsVar("lng"))
+     .thenDo(function (context) {
+
+     console.log(context.variable("lat").get(0) + "," + context.variable("lng").get(0));
+     filterCircle.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+     userPositionMarker.setLatLng([context.variable("lat").get(0), context.variable("lng").get(0)]);
+     context.continueTask();
+     })
+     );*/
 
 
     return {

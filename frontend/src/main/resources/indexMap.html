@@ -29,32 +29,24 @@
 
 
 <div class="accordion">
-
     <panel id="acc1">
-        <h2><a href="#acc1">Select time </a></h2>
-        <form id="filter_form" class="form-style" action="javascript:;" onsubmit="mapping.updateTime(this)">
-            <li>
-                <input type="number" class="field-long" name="field_time" placeholder="(desired timestamp)" value="0"/>
-                <label class="switch">
-                    Activate extrapolation
-                    <input type="checkbox" name="field_extrapolation">
-                    <div class="slider round"></div>
-                </label>
-
-            </li>
-            <li><input type="submit" value="Travel in time"/></li>
-        </form>
-    </panel>
-
-    <panel id="acc2">
-        <h2><a href="#acc2">Date Time pickr</a></h2>
+        <h2><a href="#acc1">Inputs panel</a></h2>
         <div>
             <input class="flatpickr" data-date-format="d-m-Y" data-inline=true data-enable-time=true data-time_24hr=true style="width: 100%; display: none;">
         </div>
+        <div>
+            <label class="switch">
+                Activate extrapolation
+                <input type="checkbox" name="field_extrapolation">
+                <div class="slider round"></div>
+            </label>
+        </div>
+
+        <div>
+            <label id="messagelbl"></label>
+        </div>
 
     </panel>
-
-
 </div>
 
 <script src="js/demoMap.js"></script>
