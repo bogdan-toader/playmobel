@@ -20,6 +20,7 @@ import static org.mwg.core.task.Actions.*;
  * Created by bogdan.toader on 24/10/16.
  */
 public class BackendRunner {
+
     public final static String LAT = "lat";
     public final static String LNG = "lng";
     public final static String USERS_INDEX = "users";
