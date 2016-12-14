@@ -26,7 +26,7 @@ var UserProfile = function () {
 
 
     //a global variable for the selected time :)
-    var timestamp=1224730384000;
+    var timestamp = 1224730384000;
 
     var initFlatPickr = function () {
         flatpickr = document.querySelector(".flatpickr").flatpickr({
@@ -35,8 +35,8 @@ var UserProfile = function () {
             enableTime: true,
             enableSeconds: true,
             onChange: function (dateObject, dateString) {
-                var selectedDateTime=dateObject[0];
-                timestamp= getTimeStamp(selectedDateTime.getFullYear(),selectedDateTime.getMonth(),selectedDateTime.getDate(),selectedDateTime.getHours(),selectedDateTime.getMinutes(),selectedDateTime.getSeconds());
+                var selectedDateTime = dateObject[0];
+                timestamp = getTimeStamp(selectedDateTime.getFullYear(), selectedDateTime.getMonth(), selectedDateTime.getDate(), selectedDateTime.getHours(), selectedDateTime.getMinutes(), selectedDateTime.getSeconds());
 
             }
         });
@@ -98,7 +98,6 @@ var UserProfile = function () {
     };
 
 
-
     function userchange() {
         var dropownlist = document.getElementById("userDropDown");
 
@@ -108,15 +107,16 @@ var UserProfile = function () {
 
             var date = new Date();
             date.setTime(timestamp);
-            alert(timestamp+" day: "+date.getUTCDay()+" hour: "+date.getUTCHours());
+            var relid = (date.getUTCDay()) * 24 + date.getUTCHours();
 
 
             var context = getProfile.prepare(graph, null, function (result) {
                 result.free();
             });
+            context.setVariable("profiler", "profiler" + relid);
             context.setVariable("processTime", timestamp);
             context.setVariable("selectedUser", selected);
-            //getProfile.executeUsing(context);
+            getProfile.executeUsing(context);
         }
 
     }
@@ -125,18 +125,19 @@ var UserProfile = function () {
     var actions = org.mwg.core.task.Actions;
 
     var getProfile = org.mwg.core.task.Actions.newTask()
-        .then(actions.travelInTime("{{processTime}}"))
-        .then(actions.readGlobalIndex("users"))
-        .forEach(actions.newTask()
+            .then(actions.travelInTime("{{processTime}}"))
+            .then(actions.readGlobalIndex("users", "folderId", "{{selectedUser}}"))
+            .then(actions.traverse("{{profiler}}"))
             .thenDo(function (context) {
-                var user = context.result().get(0);
-                if (context.variable("selectedUser").get(0) == user.get("folderId")) {
-                    context.continueTask();
-                }
-                context.continueWith(null);
+                var profiler = context.result().get(0);
+                console.log(profiler);
+                profiler.generateDistributions(0, function (proba) {
+                    console.log(proba.distributions.length);
+                })
+                context.continueTask();
             })
-        )
-        .then(actions.println("{{result}}"));
+
+        ;
 
 
     var loadAllusers = org.mwg.core.task.Actions.newTask()

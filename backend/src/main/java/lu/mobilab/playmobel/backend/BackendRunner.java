@@ -25,16 +25,16 @@ public class BackendRunner {
     public final static String USERS_INDEX = "users";
 
 
-//    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
-//    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
-//    public final static String DATA_DIR_SEL = DATA_DIR;
-//    public final static String LEVEL_DB = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/leveldb/";
-
-
-    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
-    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
     public final static String DATA_DIR_SEL = DATA_DIR_TEST;
-    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
+    public final static String LEVEL_DB = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/leveldb/";
+
+
+//    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+//    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+//    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
+//    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
 
     private static Calendar calendar = Calendar.getInstance();
@@ -46,7 +46,7 @@ public class BackendRunner {
         g.index(0, 0, USERS_INDEX, new Callback<NodeIndex>() {
             @Override
             public void on(NodeIndex result) {
-                result.addToIndex(user1,"folderId");
+                result.addToIndex(user1, "folderId");
             }
         });
 
@@ -54,6 +54,8 @@ public class BackendRunner {
         return user1;
     }
 
+
+    private static double[] gpserr = {0.000001, 0.000001};
 
     public void start() {
 
@@ -80,13 +82,14 @@ public class BackendRunner {
                                     context.defineVariable("userID", userID);
                                     Node user = createUser(context.graph(), userID);
 
-                                    for(int i=0;i<24*7;i++) {
+                                    for (int i = 0; i < 24 * 7; i++) {
                                         GaussianMixtureNode profiler = (GaussianMixtureNode) context.graph().newTypedNode(0, 0, GaussianMixtureNode.NAME);
                                         profiler.set(GaussianMixtureNode.LEVEL, Type.INT, 2);
                                         profiler.set(GaussianMixtureNode.WIDTH, Type.INT, 10);
                                         profiler.set(GaussianMixtureNode.COMPRESSION_FACTOR, Type.DOUBLE, 3.0);
-                                        user.addToRelation("profiler"+i, profiler);
-                                        context.defineVariable("profiler"+i, profiler);
+                                        profiler.set(GaussianMixtureNode.PRECISION, Type.DOUBLE_ARRAY, gpserr);
+                                        user.addToRelation("profiler" + i, profiler);
+                                        context.defineVariable("profiler" + i, profiler);
                                     }
 
                                     context.defineVariable("user", user);
@@ -117,7 +120,7 @@ public class BackendRunner {
                                                         int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
                                                         int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
                                                         final int relid = (day - 1) * 24 + hour;
-                                                        GaussianMixtureNode profiler= (GaussianMixtureNode) ctx.variable("profiler"+relid).get(0);
+                                                        GaussianMixtureNode profiler = (GaussianMixtureNode) ctx.variable("profiler" + relid).get(0);
 
                                                         int globalCounter = (int) ctx.variable("dataload").get(0);
                                                         globalCounter++;
@@ -173,16 +176,19 @@ public class BackendRunner {
                             speed = speed / time;
 
                             DecimalFormat df = new DecimalFormat("###,###.##");
-
                             System.out.println("Loaded " + counter + " timepoints in " + time + " seconds, speed: " + df.format(speed) + " values/sec");
-
+                            ctx.continueTask();
+                        }
+                    })
+                    .thenDo(new ActionFunction() {
+                        @Override
+                        public void eval(TaskContext ctx) {
                             //the server will be listening at this port 9011
                             WSServer graphServer = new WSServer(g, 9011);
                             graphServer.start();
 
                             RESTManager rest = new RESTManager();
                             rest.start(g);
-
                             ctx.continueTask();
                         }
                     });
