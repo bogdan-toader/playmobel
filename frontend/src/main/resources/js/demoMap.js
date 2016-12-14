@@ -52,7 +52,7 @@ var DemoMap = function () {
             //document.querySelector("#map_init").textContent = document.querySelector("#map_init").textContent + "... Done !";
         }).addTo(mymap);
 
-        markers = new L.layerGroup();
+        markers = new L.markerClusterGroup();
         markers.addTo(mymap);
     };
 

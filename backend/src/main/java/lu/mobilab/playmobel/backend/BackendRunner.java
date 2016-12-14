@@ -21,8 +21,6 @@ import static org.mwg.core.task.Actions.*;
 public class BackendRunner {
     public final static String LAT = "lat";
     public final static String LNG = "lng";
-    public final static String LATEXTRAP = "latextrap";
-    public final static String LNGEXTRAP = "lngextrap";
     public final static String USERS_INDEX = "users";
 
 
@@ -160,6 +158,14 @@ public class BackendRunner {
                             DecimalFormat df = new DecimalFormat("###,###.##");
 
                             System.out.println("Loaded " + counter + " timepoints in " + time + " seconds, speed: " + df.format(speed) + " values/sec");
+
+                            //the server will be listening at this port 9011
+                            WSServer graphServer = new WSServer(g, 9011);
+                            graphServer.start();
+
+                            RESTManager rest = new RESTManager();
+                            rest.start(g);
+
                             ctx.continueTask();
                         }
                     });
@@ -177,12 +183,7 @@ public class BackendRunner {
             ctx.setGlobalVariable("dataload", 0);
             readFileTask.executeUsing(ctx);
 
-            //the server will be listening at this port 9011
-            WSServer graphServer = new WSServer(g, 9011);
-            graphServer.start();
 
-            RESTManager rest = new RESTManager();
-            rest.start(g);
         });
     }
 
