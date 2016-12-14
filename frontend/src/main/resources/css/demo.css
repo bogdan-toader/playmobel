@@ -30,8 +30,8 @@ body {
     background-color: #95a5a6;
 }
 .map {
-    width: calc(100% - 35em);
-    display: inline-block;
+    /*width: calc(100% - 35em);*/
+    /*display: inline-block;*/
     height: 1000px;
 }
 

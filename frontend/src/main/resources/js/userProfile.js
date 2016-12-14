@@ -72,7 +72,7 @@ var UserProfile = function () {
             };
 
 
-            
+
             heatmap = new HeatmapOverlay(cfg);
 
             map = L.map('mapid').setView([39.984702, 116.318417], 7);
