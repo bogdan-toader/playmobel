@@ -210,8 +210,8 @@ var UserProfile = function () {
             else {
                 console.log("selected user empty");
             }
-
         }
+        
 
         var loadAllusers = org.mwg.core.task.Actions.newTask()
                 .then(actions.travelInTime("{{processTime}}"))
