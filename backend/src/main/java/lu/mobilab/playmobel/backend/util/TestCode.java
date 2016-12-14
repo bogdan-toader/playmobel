@@ -4,6 +4,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * Created by bogdan.toader on 13/12/16.
@@ -17,7 +20,10 @@ public class TestCode {
         LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
         ZoneOffset zoneOffset = ZoneId.of("GMT").getRules().getOffset(dateTime);
         long timestamp = dateTime.toEpochSecond(zoneOffset)*1000; //to get in ms
+
         System.out.println(timestamp);
+
+
 
 
     }

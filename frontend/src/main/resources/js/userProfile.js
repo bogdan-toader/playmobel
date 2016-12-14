@@ -1,4 +1,4 @@
-var DemoMap = function () {
+var UserProfile = function () {
 
     var LAT = "lat";
     var LNG = "lng";
@@ -11,7 +11,6 @@ var DemoMap = function () {
     var flatpickr; //the timedate selector
     var markers; //all the user markers
 
-    var timestamp=1224730384000;
 
     function getTimeStamp(year, month, day, hour, min, sec) {
         var parsedUnixTime = new Date();
@@ -26,18 +25,22 @@ var DemoMap = function () {
     }
 
 
+    //a global variable for the selected time :)
+    var timestamp=1224730384000;
+
     var initFlatPickr = function () {
         flatpickr = document.querySelector(".flatpickr").flatpickr({
-            defaultDate: "2008-10-23T02:53:04",
+            utc: true,
+            defaultDate: "2008-10-23T02:53:04Z",
             enableTime: true,
             enableSeconds: true,
             onChange: function (dateObject, dateString) {
                 var selectedDateTime=dateObject[0];
                 timestamp= getTimeStamp(selectedDateTime.getFullYear(),selectedDateTime.getMonth(),selectedDateTime.getDate(),selectedDateTime.getHours(),selectedDateTime.getMinutes(),selectedDateTime.getSeconds());
-                updateTime();
+
             }
         });
-    }
+    };
 
 
     var initMap = function () {
@@ -71,8 +74,7 @@ var DemoMap = function () {
             .withPlugin(new org.mwg.structure.StructurePlugin())
             .withPlugin(new org.mwg.ml.MLPlugin()).build();
         graph.connect(function () {
-            updateTime();
-
+            initUserList();
         });
 
 
@@ -95,56 +97,74 @@ var DemoMap = function () {
         return graph;
     };
 
-    function updateTime() {
-        var context = createAllUsersTask.prepare(graph, null, function (result) {
-            result.free();
-        });
-        context.setVariable("processTime", timestamp);
-        createAllUsersTask.executeUsing(context);
+
+
+    function userchange() {
+        var dropownlist = document.getElementById("userDropDown");
+
+        if (dropownlist.selectedIndex != null) {
+            var selected = dropownlist.options[dropownlist.selectedIndex].text;
+
+
+            var date = new Date();
+            date.setTime(timestamp);
+            alert(timestamp+" day: "+date.getUTCDay()+" hour: "+date.getUTCHours());
+
+
+            var context = getProfile.prepare(graph, null, function (result) {
+                result.free();
+            });
+            context.setVariable("processTime", timestamp);
+            context.setVariable("selectedUser", selected);
+            //getProfile.executeUsing(context);
+        }
+
     }
+
 
     var actions = org.mwg.core.task.Actions;
 
-    var createAllUsersTask = org.mwg.core.task.Actions.newTask()
+    var getProfile = org.mwg.core.task.Actions.newTask()
+        .then(actions.travelInTime("{{processTime}}"))
+        .then(actions.readGlobalIndex("users"))
+        .forEach(actions.newTask()
             .thenDo(function (context) {
-                context.addToGlobalVariable("startTime", performance.now());
-                context.addToGlobalVariable("counter", 0);
-                markers.clearLayers();
+                var user = context.result().get(0);
+                if (context.variable("selectedUser").get(0) == user.get("folderId")) {
+                    context.continueTask();
+                }
+                context.continueWith(null);
+            })
+        )
+        .then(actions.println("{{result}}"));
+
+
+    var loadAllusers = org.mwg.core.task.Actions.newTask()
+        .then(actions.travelInTime("{{processTime}}"))
+        .then(actions.readGlobalIndex("users"))
+        .forEach(actions.newTask()
+            .thenDo(function (context) {
+                var dropownlist = document.getElementById("userDropDown");
+                var user = context.result().get(0);
+                var option = document.createElement('option');
+                option.text = user.get("folderId");
+                option.value = user.id();
+                dropownlist.add(option, 0);
                 context.continueTask();
             })
-            .then(actions.travelInTime("{{processTime}}"))
-            .then(actions.readGlobalIndex("users"))
-            .forEach(actions.newTask()
-                .thenDo(function (context) {
-                    var user = context.result().get(0);
-                    var lat = user.get("lat");
-                    var lng = user.get("lng");
-                    var userID = user.get("folderId");
-                    if (lat != null && lng != null) {
-                        var counter = context.variable("counter").get(0) + 1;
-                        context.setGlobalVariable("counter", counter);
-                        addMarker(userID, lat, lng, context);
-                    }
-                    else {
-                        context.continueTask();
-                    }
-                })
-            )
-            .thenDo(function (context) {
-                var endtime = performance.now();
-                var starttime = context.variable("startTime").get(0);
-                var counter= context.variable("counter").get(0);
+        );
 
-                var processtime = endtime - starttime;
-                document.getElementById('messagelbl').innerHTML = "loaded "+counter+" users in: " + parseFloat(processtime).toFixed(2)+ " ms";
-                context.continueTask();
-            })
-        ;
-
+    var initUserList = function () {
+        var context = loadAllusers.prepare(graph, null, function (result) {
+            result.free();
+        });
+        context.setVariable("processTime", timestamp);
+        loadAllusers.executeUsing(context);
+    }
 
     return {
         init: init,
-        updateTime: updateTime,
-        graph: getGraph
+        graph: getGraph,
+        userchange: userchange
     };
 };

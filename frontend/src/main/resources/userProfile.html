@@ -29,22 +29,32 @@
 
 <div id="mapid" class="map"></div>
 
+
 <div class="accordion" >
     <panel id="acc1">
         <h2><a href="#acc1">Inputs panel</a></h2>
         <div>
-            <input class="flatpickr" data-date-format="d-m-Y" data-inline=true data-enable-time=true data-time_24hr=true style="width: 100%; display: none;">
+            <input class="flatpickr" data-date-format="d-m-Y" data-utc=true data-inline=true data-enable-time=true data-time_24hr=true style="width: 100%; display: none;">
         </div>
+
+        <div>
+            <select id="userDropDown" name="user list" onchange="mapping.userchange()">
+
+            </select>
+        </div>
+
         <div>
             <label id="messagelbl"></label>
         </div>
 
+
+
     </panel>
 </div>
 
-<script src="js/demoMap.js"></script>
+<script src="js/userProfile.js"></script>
 <script>
-    var mapping = DemoMap();
+    var mapping = UserProfile();
     mapping.init();
 </script>
 

@@ -38,7 +38,7 @@ body {
 .accordion {
     display: inline-block;
     vertical-align: top;
-    width: 25em;
+    width: 300px;
     padding: 0.5em 0.5em 1px 0.5em;
     margin: 0 auto;
     background-color: #666;
@@ -48,9 +48,8 @@ body {
 
 .accordion panel {
     display: block;
-    width: 23em;
+    width: 300px;
     height: 2em;
-    padding: 0 1em;
     margin: 0 0 0.5em 0;
     color: #333;
     background-color: #333;

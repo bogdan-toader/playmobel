@@ -4,13 +4,14 @@ import org.mwg.*;
 import org.mwg.importer.ImporterActions;
 import org.mwg.importer.ImporterPlugin;
 import org.mwg.ml.MLPlugin;
+import org.mwg.ml.algorithm.profiling.GaussianMixtureNode;
+import org.mwg.ml.algorithm.profiling.GaussianSlotNode;
+import org.mwg.struct.Relation;
 import org.mwg.task.*;
 
 import java.text.DecimalFormat;
-//import java.time.LocalDateTime;
-//import java.time.ZoneId;
-//import java.time.format.DateTimeFormatter;
-//import java.time.zone.ZoneRules;
+import java.util.Calendar;
+import java.util.Date;
 
 import static org.mwg.core.task.Actions.*;
 
@@ -24,20 +25,19 @@ public class BackendRunner {
     public final static String USERS_INDEX = "users";
 
 
-    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
-    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
-    public final static String DATA_DIR_SEL = DATA_DIR;
-    public final static String LEVEL_DB = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/leveldb/";
+//    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
+//    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
+//    public final static String DATA_DIR_SEL = DATA_DIR;
+//    public final static String LEVEL_DB = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/leveldb/";
 
 
-//    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
-//    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
-//    public final static String DATA_DIR_SEL=DATA_DIR;
-//    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
+    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
+    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
-//    private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-//    private static ZoneRules zoneRules= ZoneId.of("GMT").getRules();
 
+    private static Calendar calendar = Calendar.getInstance();
 
     private static Node createUser(Graph g, String userFolderId) {
         Node user1 = g.newNode(0, 0);
@@ -46,15 +46,13 @@ public class BackendRunner {
         g.index(0, 0, USERS_INDEX, new Callback<NodeIndex>() {
             @Override
             public void on(NodeIndex result) {
-                result.addToIndex(user1);
+                result.addToIndex(user1,"folderId");
             }
         });
 
 
         return user1;
     }
-
-
 
 
     public void start() {
@@ -81,6 +79,16 @@ public class BackendRunner {
                                     context.defineVariable("path", path);
                                     context.defineVariable("userID", userID);
                                     Node user = createUser(context.graph(), userID);
+
+                                    for(int i=0;i<24*7;i++) {
+                                        GaussianMixtureNode profiler = (GaussianMixtureNode) context.graph().newTypedNode(0, 0, GaussianMixtureNode.NAME);
+                                        profiler.set(GaussianMixtureNode.LEVEL, Type.INT, 2);
+                                        profiler.set(GaussianMixtureNode.WIDTH, Type.INT, 10);
+                                        profiler.set(GaussianMixtureNode.COMPRESSION_FACTOR, Type.DOUBLE, 3.0);
+                                        user.addToRelation("profiler"+i, profiler);
+                                        context.defineVariable("profiler"+i, profiler);
+                                    }
+
                                     context.defineVariable("user", user);
                                     context.continueWith(context.wrap(path + "/Trajectory/"));
                                 }
@@ -102,13 +110,14 @@ public class BackendRunner {
                                                         final double lat = Double.parseDouble(substr[0]);
                                                         final double lng = Double.parseDouble(substr[1]);
 
-//                                                        String dateStr = substr[5] + " " + substr[6];
-//                                                        LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
-//                                                        long timestamp = dateTime.toEpochSecond(zoneRules.getOffset(dateTime)) * 1000; //to get in ms
-
-                                                        double x= Double.parseDouble(substr[4])*86400;
-                                                        long timestamp=((long)x-2209161600l)*1000;
-
+                                                        double x = Double.parseDouble(substr[4]) * 86400;
+                                                        long timestamp = ((long) x - 2209161600l) * 1000;
+                                                        Date time = new Date(timestamp);
+                                                        calendar.setTime(time);
+                                                        int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
+                                                        int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
+                                                        final int relid = (day - 1) * 24 + hour;
+                                                        GaussianMixtureNode profiler= (GaussianMixtureNode) ctx.variable("profiler"+relid).get(0);
 
                                                         int globalCounter = (int) ctx.variable("dataload").get(0);
                                                         globalCounter++;
@@ -119,8 +128,13 @@ public class BackendRunner {
                                                             public void on(Node result) {
                                                                 result.set(LAT, Type.DOUBLE, lat);
                                                                 result.set(LNG, Type.DOUBLE, lng);
-                                                                result.free();
-                                                                ctx.continueTask();
+                                                                profiler.learnVector(new double[]{lat, lng}, new Callback<Boolean>() {
+                                                                    @Override
+                                                                    public void on(Boolean resultbool) {
+                                                                        result.free();
+                                                                        ctx.continueTask();
+                                                                    }
+                                                                });
                                                             }
                                                         });
 
@@ -129,8 +143,8 @@ public class BackendRunner {
                                                     }
                                                 }
                                             })
+                                            .then(save())
                                     )
-                                    .then(save())
                             )
                             .thenDo(new ActionFunction() {
                                 @Override
@@ -145,7 +159,6 @@ public class BackendRunner {
                                     String userID = (String) ctx.variable("userID").get(0);
                                     System.out.println("Loaded user: " + userID + ", total: " + ctx.variable("dataload").get(0) + " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
                                     ctx.continueTask();
-
                                 }
                             })
                     )
@@ -173,7 +186,6 @@ public class BackendRunner {
                             ctx.continueTask();
                         }
                     });
-
 
 
             TaskContext ctx = readFileTask.prepare(g, DATA_DIR_SEL, new Callback<TaskResult>() {
