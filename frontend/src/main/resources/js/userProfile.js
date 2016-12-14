@@ -10,6 +10,7 @@ var UserProfile = function () {
     var graph; //the kmf graph
     var flatpickr; //the timedate selector
     var markers; //all the user markers
+    var heatmap;//for heatmap
 
 
     function getTimeStamp(year, month, day, hour, min, sec) {
@@ -57,6 +58,10 @@ var UserProfile = function () {
         }).on('load', function (e) {
             //document.querySelector("#map_init").textContent = document.querySelector("#map_init").textContent + "... Done !";
         }).addTo(mymap);
+
+        heatmap = new L.webGLHeatmap({
+            size: 200 //200m diameter
+        });
 
         markers = new L.markerClusterGroup();
         markers.addTo(mymap);
@@ -132,7 +137,8 @@ var UserProfile = function () {
                 var profiler = context.result().get(0);
                 console.log(profiler);
                 profiler.generateDistributions(0, function (proba) {
-                    console.log(proba.distributions.length);
+
+
                 })
                 context.continueTask();
             })
