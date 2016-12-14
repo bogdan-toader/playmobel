@@ -25,16 +25,16 @@ public class BackendRunner {
     public final static String USERS_INDEX = "users";
 
 
-//    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
-//    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
-//    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
-//    public final static String LEVEL_DB = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/leveldb/";
-
-
-    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
-    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
     public final static String DATA_DIR_SEL = DATA_DIR_TEST;
-    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
+    public final static String LEVEL_DB = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/leveldb/";
+
+
+//    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+//    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+//    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
+//    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
 
     private static Calendar calendar = Calendar.getInstance();
@@ -90,9 +90,11 @@ public class BackendRunner {
                                         profiler.set(GaussianMixtureNode.PRECISION, Type.DOUBLE_ARRAY, gpserr);
                                         user.addToRelation("profiler" + i, profiler);
                                         context.defineVariable("profiler" + i, profiler);
+                                        profiler.free();
                                     }
 
                                     context.defineVariable("user", user);
+                                    user.free();
                                     context.continueWith(context.wrap(path + "/Trajectory/"));
                                 }
                             })
@@ -160,7 +162,7 @@ public class BackendRunner {
                                     speed = speed / time;
                                     DecimalFormat df = new DecimalFormat("###,###.##");
                                     String userID = (String) ctx.variable("userID").get(0);
-                                    System.out.println("Loaded user: " + userID + ", total: " + ctx.variable("dataload").get(0) + " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
+                                    System.out.println("Loaded user: " + userID + ", total: " + ctx.variable("dataload").get(0) + " timepoints, free memory: "+ctx.graph().space().available() +", elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
                                     ctx.continueTask();
                                 }
                             })
@@ -176,7 +178,7 @@ public class BackendRunner {
                             speed = speed / time;
 
                             DecimalFormat df = new DecimalFormat("###,###.##");
-                            System.out.println("Loaded " + counter + " timepoints in " + time + " seconds, speed: " + df.format(speed) + " values/sec");
+                            System.out.println("Loaded " + counter + " timepoints in " + time + " seconds, free memory: "+ctx.graph().space().available() +", speed: " + df.format(speed) + " values/sec");
                             ctx.continueTask();
                         }
                     })
