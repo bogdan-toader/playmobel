@@ -7,6 +7,10 @@ import org.mwg.ml.MLPlugin;
 import org.mwg.task.*;
 
 import java.text.DecimalFormat;
+//import java.time.LocalDateTime;
+//import java.time.ZoneId;
+//import java.time.format.DateTimeFormatter;
+//import java.time.zone.ZoneRules;
 
 import static org.mwg.core.task.Actions.*;
 
@@ -31,7 +35,8 @@ public class BackendRunner {
 //    public final static String DATA_DIR_SEL=DATA_DIR;
 //    public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
-
+//    private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+//    private static ZoneRules zoneRules= ZoneId.of("GMT").getRules();
 
 
     private static Node createUser(Graph g, String userFolderId) {
@@ -96,6 +101,10 @@ public class BackendRunner {
 
                                                         final double lat = Double.parseDouble(substr[0]);
                                                         final double lng = Double.parseDouble(substr[1]);
+
+//                                                        String dateStr = substr[5] + " " + substr[6];
+//                                                        LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
+//                                                        long timestamp = dateTime.toEpochSecond(zoneRules.getOffset(dateTime)) * 1000; //to get in ms
 
                                                         double x= Double.parseDouble(substr[4])*86400;
                                                         long timestamp=((long)x-2209161600l)*1000;
