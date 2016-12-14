@@ -120,13 +120,10 @@ var UserProfile = function () {
 
         function addMarker(nodeID, day, hour, lat, lng, probability) {
             var marker = L.marker([lat, lng])
-                .bindPopup("user: " + nodeID + " on " + day + " at " + hour + " o'clock");
+                .bindPopup(day + " at " + hour + " o'clock, probability: " + Number(probability).toFixed(2) + "%");
             marker["node"] = nodeID;
-            marker.on('click', function (e) {
-                alert("user Id: " + e.target.node + " (lat,lng): " + e.latlng.lat + "," + e.latlng.lng + ", location probability: " + Number(probability).toFixed(2) + "%");
-            });
             markers.addLayer(marker);
-        };
+        }
 
 
         var actions = org.mwg.core.task.Actions;
