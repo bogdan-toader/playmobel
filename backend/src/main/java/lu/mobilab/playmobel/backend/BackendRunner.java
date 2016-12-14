@@ -7,10 +7,6 @@ import org.mwg.ml.MLPlugin;
 import org.mwg.task.*;
 
 import java.text.DecimalFormat;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 
 import static org.mwg.core.task.Actions.*;
 
@@ -54,7 +50,6 @@ public class BackendRunner {
     }
 
 
-    private static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 
     public void start() {
@@ -68,6 +63,8 @@ public class BackendRunner {
 //                .withScheduler(new HybridScheduler())
                 .build();
         g.connect(connectionResult -> {
+
+
             Task readFileTask = newTask()
                     .then(ImporterActions.readFiles("{{result}}"))
                     .forEach(newTask()
@@ -100,11 +97,9 @@ public class BackendRunner {
                                                         final double lat = Double.parseDouble(substr[0]);
                                                         final double lng = Double.parseDouble(substr[1]);
 
-                                                        String dateStr = substr[5] + " " + substr[6];
+                                                        double x= Double.parseDouble(substr[4])*86400;
+                                                        long timestamp=((long)x-2209161600l)*1000;
 
-                                                        LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
-                                                        ZoneOffset zoneOffset = ZoneId.of("GMT").getRules().getOffset(dateTime);
-                                                        long timestamp = dateTime.toEpochSecond(zoneOffset) * 1000; //to get in ms
 
                                                         int globalCounter = (int) ctx.variable("dataload").get(0);
                                                         globalCounter++;
@@ -137,11 +132,11 @@ public class BackendRunner {
                                     long time = (endtime - starttime) / 1000;
                                     double speed = counter;
                                     speed = speed / time;
-
                                     DecimalFormat df = new DecimalFormat("###,###.##");
                                     String userID = (String) ctx.variable("userID").get(0);
                                     System.out.println("Loaded user: " + userID + ", total: " + ctx.variable("dataload").get(0) + " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
                                     ctx.continueTask();
+
                                 }
                             })
                     )
