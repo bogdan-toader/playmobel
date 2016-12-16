@@ -33,7 +33,7 @@ public class BackendRunner {
 //    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
 
 
-    private static final DecimalFormat df = new DecimalFormat("###,###.##");
+    private static final DecimalFormat df = new DecimalFormat("###,###.#");
     private static final DecimalFormat intf = new DecimalFormat("###,###,###");
 
     private final double err = 0.00001;
@@ -94,26 +94,27 @@ public class BackendRunner {
                 }
 
                 long endtime = System.currentTimeMillis();
-                long time = (endtime - starttime) / 1000;
+                double time = (endtime - starttime) / 1000.0;
                 double speed = totallines;
                 speed = speed / time;
-                System.out.println("Loaded user: " + userName + ", total: " + intf.format(totallines)+ " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
+                System.out.println("Loaded user: " + userName + ", total: " + intf.format(totallines) + " timepoints, elapsed time: " + df.format(time) + " s, speed: " + intf.format(speed) + " values/sec");
+
             }
         }
 
-        usernames=new String[index.keySet().size()];
-        int c=0;
+        usernames = new String[index.keySet().size()];
+        int c = 0;
         for (String key : index.keySet()) {
-            usernames[c]=key;
+            usernames[c] = key;
             c++;
         }
         Arrays.sort(usernames);
         long endtime = System.currentTimeMillis();
-        long time = (endtime - starttime) / 1000;
+        double time = (endtime - starttime) / 1000.0;
         double speed = totallines;
         speed = speed / time;
         System.out.println("");
-        System.out.println("IMPORT COMPLETED, Loaded "+usernames.length+" users with: " + intf.format(totallines) + " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
+        System.out.println("IMPORT COMPLETED, Loaded " + usernames.length + " users with: " + intf.format(totallines) + " timepoints, elapsed time: " + df.format(time)+ " s, speed: " + intf.format(speed) + " values/sec");
         System.out.println("");
     }
 
@@ -170,7 +171,7 @@ public class BackendRunner {
             User user = index.get(userid);
             ProbaDistribution proba = user.getDistribution(timestamp, 0);
 
-            if(proba!=null &&proba.distributions.length>0) {
+            if (proba != null && proba.distributions.length > 0) {
                 JsonArray result = new JsonArray();
                 for (int i = 0; i < proba.distributions.length; i++) {
                     JsonObject serie = new JsonObject();
@@ -188,13 +189,12 @@ public class BackendRunner {
 
                 httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
                 httpServerExchange.setStatusCode(StatusCodes.OK);
-                System.out.println("Get Profile of user: "+userid + " at time: " + timestamp  + ", returned: " + proba.distributions.length + " profile points");
+                System.out.println("Get Profile of user: " + userid + " at time: " + timestamp + ", returned: " + proba.distributions.length + " profile points");
                 httpServerExchange.getResponseSender().send(result.toString());
-            }
-            else{
+            } else {
                 httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
                 httpServerExchange.setStatusCode(StatusCodes.NO_CONTENT);
-                System.out.println("Get Profile of user: "+userid + " at time: " + timestamp + ", returned: 0 profile points");
+                System.out.println("Get Profile of user: " + userid + " at time: " + timestamp + ", returned: 0 profile points");
                 httpServerExchange.getResponseSender().send("");
             }
 
