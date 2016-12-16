@@ -14,9 +14,9 @@ public class GMMJavaTest {
         int test=1000000;
 
         GMMConfig conf = new GMMConfig();
-        conf.maxLevels = 3;
-        conf.width=10;
-        conf.compressionFactor=4;
+        conf.maxLevels = 2;
+        conf.width=5;
+        conf.compressionFactor=1;
         conf.compressionIter=10;
         conf.threshold=0.00001;
         conf.resolution=new double[dim];

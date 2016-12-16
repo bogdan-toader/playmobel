@@ -12,19 +12,22 @@ import java.util.TreeMap;
 public class User {
     private TreeMap<Long, double[]> userLatLng;
     private String userId;
-    private GMMJava[] profiles;
+    private TreeMap<Long, GMMJava[]> profiles;
     private static Calendar calendar = Calendar.getInstance();
+    private long profileDuration;
+    private GMMConfig config;
 
-    public User(String userId, final GMMConfig config){
-        this.userId=userId;
-        userLatLng=new TreeMap<Long, double[]>();
-        profiles=new GMMJava[24*7];
-        for(int i=0;i<24*7;i++){
-            profiles[i]=new GMMJava(config);
-        }
+    public User(String userId, final GMMConfig config, long profileDuration) {
+        this.userId = userId;
+        userLatLng = new TreeMap<Long, double[]>();
+        profiles = new TreeMap<>();
+        this.config = config;
+        this.profileDuration = profileDuration;
     }
 
-    private static int getProfileId(final long timestamp){
+
+
+    private static int getProfileId(final long timestamp) {
         Date time = new Date(timestamp);
         calendar.setTime(time);
         int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
@@ -33,25 +36,85 @@ public class User {
         return profileId;
     }
 
-    public void learn(final long timestamp, final double[] latlng){
-        profiles[getProfileId(timestamp)].learnVector(latlng);
+    private GMMJava[] createProfile(){
+        GMMJava[] newprofiles = new GMMJava[24 * 7];
+        for (int i = 0; i < 24 * 7; i++) {
+            newprofiles[i] = new GMMJava(config);
+        }
+        return newprofiles;
     }
 
-    public void insert(final long timestamp, final double[] latlng){
-        userLatLng.put(timestamp,latlng);
-    }
+    private long lasthash=-1;
+    private GMMJava[] lastres;
 
-    public double[] getLatLng(long timestamp){
-        if(timestamp<userLatLng.firstKey()){
-            return null;
+    private GMMJava[] createorGetProfileArray(long time){
+        long t = time / profileDuration;
+        if(t==lasthash){
+            return lastres;
         }
         else {
+            GMMJava[] resolvedProfiles;
+            if (profiles.size() == 0 || t < profiles.firstKey()) {
+                resolvedProfiles = createProfile();
+                profiles.put(t, resolvedProfiles);
+                lasthash=t;
+                lastres=resolvedProfiles;
+                return resolvedProfiles;
+            } else {
+                long lastT = profiles.floorKey(t);
+                if (lastT == t) {
+                    lasthash=t;
+                    resolvedProfiles =profiles.get(lastT);
+                    lastres=resolvedProfiles;
+                    return resolvedProfiles;
+                } else {
+                    resolvedProfiles = createProfile();
+                    profiles.put(t, resolvedProfiles);
+                    lasthash=t;
+                    lastres=resolvedProfiles;
+                    return resolvedProfiles;
+                }
+            }
+        }
+//      return null;
+    }
+
+    private GMMJava[] getProfileArray(long time){
+        long t = time / profileDuration;
+        if(profiles.size()>0) {
+            if(profiles.floorKey(t)!=null) {
+                long lastT = profiles.floorKey(t);
+                return profiles.get(lastT);
+            }
+        }
+        return null;
+    }
+
+    public void learn(final long timestamp, final double[] latlng) {
+        GMMJava[] profilesArray= createorGetProfileArray(timestamp);
+        profilesArray[getProfileId(timestamp)].learnVector(latlng);
+    }
+
+    public void insert(final long timestamp, final double[] latlng) {
+        userLatLng.put(timestamp, latlng);
+    }
+
+    public double[] getLatLng(long timestamp) {
+        if (timestamp < userLatLng.firstKey()) {
+            return null;
+        } else {
             return userLatLng.get(userLatLng.floorKey(timestamp));
         }
     }
 
-    public ProbaDistribution getDistribution(long timestamp, int level){
-        return profiles[getProfileId(timestamp)].generateDistributions(level);
+    public ProbaDistribution getDistribution(long timestamp, int level) {
+        GMMJava[] profilesArray = getProfileArray(timestamp);
+        if(profilesArray!=null) {
+            return profilesArray[getProfileId(timestamp)].generateDistributions(level);
+        }
+        else {
+            return null;
+        }
     }
 
     public String getUserId() {

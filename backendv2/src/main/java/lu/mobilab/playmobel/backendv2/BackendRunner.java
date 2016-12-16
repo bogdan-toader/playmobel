@@ -23,16 +23,17 @@ import java.util.HashMap;
 
 public class BackendRunner {
 
-    //:)
-//    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
-//    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
-//    public final static String DATA_DIR_SEL = DATA_DIR;
 
-
-    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
-    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
-    public final static String DATA_GOOGLE = "/Users/bogdan.toader/Documents/Datasets/google/";
+    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_GOOGLE = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/google/";
     public final static String DATA_DIR_SEL = DATA_GOOGLE;
+
+
+//    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+//    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+//    public final static String DATA_GOOGLE = "/Users/bogdan.toader/Documents/Datasets/google/";
+//    public final static String DATA_DIR_SEL = DATA_GOOGLE;
 
 
     private static final DecimalFormat df = new DecimalFormat("###,###.#");
@@ -42,6 +43,7 @@ public class BackendRunner {
     private final double[] gpserr = {err, err};
     private final GMMConfig config = new GMMConfig(3, 10, 3, 10, 2, gpserr);
     private final HashMap<String, User> index = new HashMap<>();
+    private final long profileDuration= 3*30*24*3600*1000l; //profile duration is 3 months
     private String[] usernames;
 
     private Undertow server;
@@ -80,7 +82,7 @@ public class BackendRunner {
         for (int i = 0; i < listOfFiles.length; i++) {
             if (listOfFiles[i].isDirectory()) {
                 String username = listOfFiles[i].getName();
-                User user = new User(username, config);
+                User user = new User(username, config, profileDuration);
                 index.put(username, user);
                 path = listOfFiles[i].getPath() + "/Trajectory/";
                 subfolder = new File(path);
@@ -158,7 +160,7 @@ public class BackendRunner {
                 if (listOfFiles[i].isDirectory()) {
                     String username = listOfFiles[i].getName();
                     listOfsubFiles = listOfFiles[i].listFiles();
-                    User user = new User(username, config);
+                    User user = new User(username, config, profileDuration);
                     index.put(username, user);
 
                     for (int j = 0; j < listOfsubFiles.length; j++) {

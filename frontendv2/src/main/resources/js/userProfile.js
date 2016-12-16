@@ -9,7 +9,8 @@ var UserProfile = function () {
     var markers; //all the user markers
     var heatmap;//for heatmap for user
     var timestamp = 1224833400000; //the time stamp selected
-    var selectedUser = "000"; //the selected user
+    timestamp = Date.now(); //Set to now
+    var selectedUser = ""; //the selected user
 
     function getTimeStamp(year, month, day, hour, min, sec) {
         var parsedUnixTime = new Date();
@@ -43,7 +44,7 @@ var UserProfile = function () {
     var initMap = function () {
         //PARIS: 48.8523947,2.3462913
         //Luxembourg: 49.632386, 6.168544
-        //China:39.984702,116.318417
+        //China: 39.984702,116.318417
 
         var cfg = {
             // radius should be small ONLY if scaleRadius is true (or small radius is intended)
@@ -68,7 +69,7 @@ var UserProfile = function () {
 
         heatmap = new HeatmapOverlay(cfg);
 
-        map = L.map('mapid').setView([39.984702, 116.318417], 7);
+        map = L.map('mapid').setView([49.632386, 6.168544], 7);
         L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/256/{z}/{x}/{y}?access_token={accessToken}', {
             attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
             maxZoom: 18,
@@ -105,8 +106,10 @@ var UserProfile = function () {
                         option.value = option.text = resultJson[i];
                         dropownlist.add(option, 0);
                     }
+                    selectedUser=resultJson[0];
                     var processtime = performance.now() - starttime;
                     document.getElementById('messagelbl').innerHTML = "loaded " + resultJson.length + " users in: " + parseFloat(processtime).toFixed(2) + " ms";
+                    userOrTimechange();
                 }
                 else if (xmlhttp.status == 400) {
                     alert('There was an error 400');

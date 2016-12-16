@@ -18,8 +18,7 @@ public class GMMJava {
     private int total;
     private int level;
     private GMMConfig rootconfig;
-
-    ArrayList<GMMJava> subGaussians;
+    private ArrayList<GMMJava> subGaussians;
 
 
     public GMMJava(GMMConfig config) {
