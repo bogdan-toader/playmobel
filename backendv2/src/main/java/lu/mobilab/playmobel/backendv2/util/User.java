@@ -99,11 +99,12 @@ public class User {
         userLatLng.put(timestamp, latlng);
     }
 
-    public double[] getLatLng(long timestamp) {
+    public LatLngObj getLatLng(long timestamp) {
         if (timestamp < userLatLng.firstKey()) {
             return null;
         } else {
-            return userLatLng.get(userLatLng.floorKey(timestamp));
+            long realtime=userLatLng.floorKey(timestamp);
+            return new LatLngObj(userLatLng.get(realtime),timestamp,realtime);
         }
     }
 

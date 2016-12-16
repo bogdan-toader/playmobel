@@ -62,9 +62,26 @@ var DemoMap = function () {
     };
 
 
-    function addMarker(nodeID, lat, lng) {
-        var marker = L.marker([lat, lng])
-            .bindPopup("user: " + nodeID + " (lat,lng): " + lat + "," + lng);
+    function addMarker(nodeID, lat, lng, realtime, requestedtime) {
+        var marker;
+
+        if (realtime < requestedtime - 6 * 3600 * 1000) {
+            var parsedUnixTime = new Date(realtime);
+            var year = parsedUnixTime.getUTCFullYear();
+            var month = parsedUnixTime.getUTCMonth() + 1;
+            var day = parsedUnixTime.getUTCDate();
+            var hour = parsedUnixTime.getUTCHours();
+            var min = parsedUnixTime.getUTCMinutes();
+
+            marker = L.marker([lat, lng])
+                .bindPopup("user: " + nodeID + " (lat,lng): " + lat + "," + lng + " \n Time: " + day + "/" + month + "/" + year + " " + hour + ":" + min);
+        }
+        else {
+            marker = L.marker([lat, lng])
+                .bindPopup("user: " + nodeID + " (lat,lng): " + lat + "," + lng);
+        }
+
+
         marker["node"] = nodeID;
         markers.addLayer(marker);
     };
@@ -79,10 +96,10 @@ var DemoMap = function () {
                     var resultJson = JSON.parse(xmlhttp.responseText);
                     markers.clearLayers();
                     for (var i = 0; i < resultJson.length; i++) {
-                        addMarker(resultJson[i].userId,resultJson[i].lat,resultJson[i].lng);
+                        addMarker(resultJson[i].userId, resultJson[i].lat, resultJson[i].lng, resultJson[i].realtime, timestamp);
                     }
-                    var processtime =  performance.now() - starttime;
-                    document.getElementById('messagelbl').innerHTML = "loaded "+resultJson.length+" users in: " + parseFloat(processtime).toFixed(2)+ " ms";
+                    var processtime = performance.now() - starttime;
+                    document.getElementById('messagelbl').innerHTML = "loaded " + resultJson.length + " users in: " + parseFloat(processtime).toFixed(2) + " ms";
                 }
                 else if (xmlhttp.status == 400) {
                     alert('There was an error 400');
@@ -93,8 +110,8 @@ var DemoMap = function () {
             }
         };
 
-        var params="timestamp="+timestamp;
-        xmlhttp.open("GET", "http://" + window.location.hostname + ":8081/getPositions?"+ encodeURI(params), true);
+        var params = "timestamp=" + timestamp;
+        xmlhttp.open("GET", "http://" + window.location.hostname + ":8081/getPositions?" + encodeURI(params), true);
         xmlhttp.send();
     }
 

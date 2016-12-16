@@ -182,6 +182,10 @@ var UserProfile = function () {
                         document.getElementById('messagelbl').innerHTML = "loaded " + resultJson.length + " profile points in: " + parseFloat(processtime).toFixed(2) + " ms";
                     }
                     else if(xmlhttp.status == 204){
+                        markers.clearLayers();
+                        var testData = {};
+                        testData.data = [];
+                        heatmap.setData(testData);
                         var processtime = performance.now() - starttime;
                         document.getElementById('messagelbl').innerHTML = "No profile points found for this user, loaded in: " + parseFloat(processtime).toFixed(2) + " ms";
                     }

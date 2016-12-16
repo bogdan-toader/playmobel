@@ -10,16 +10,16 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
 import io.undertow.util.StatusCodes;
 import lu.mobilab.playmobel.backendv2.util.GMMConfig;
+import lu.mobilab.playmobel.backendv2.util.LatLngObj;
 import lu.mobilab.playmobel.backendv2.util.User;
 import org.json.JSONObject;
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
 public class BackendRunner {
 
@@ -43,7 +43,7 @@ public class BackendRunner {
     private final double[] gpserr = {err, err};
     private final GMMConfig config = new GMMConfig(3, 10, 3, 10, 2, gpserr);
     private final HashMap<String, User> index = new HashMap<>();
-    private final long profileDuration= 3*30*24*3600*1000l; //profile duration is 3 months
+    private final long profileDuration = 3*30* 24 * 3600 * 1000l; //profile duration is 3 months
     private String[] usernames;
 
     private Undertow server;
@@ -224,12 +224,13 @@ public class BackendRunner {
             int total = 0;
             for (String key : index.keySet()) {
                 User user = index.get(key);
-                double[] latlng = user.getLatLng(timestamp);
+                LatLngObj latlng = user.getLatLng(timestamp);
                 if (latlng != null) {
                     JsonObject serie = new JsonObject();
                     serie.add("userId", user.getUserId());
-                    serie.add("lat", latlng[0]);
-                    serie.add("lng", latlng[1]);
+                    serie.add("lat", latlng.getLat());
+                    serie.add("lng", latlng.getLng());
+                    serie.add("realtime", latlng.getRealtime());
                     total++;
                     result.add(serie);
                 }
