@@ -152,25 +152,33 @@ public class BackendRunner {
             User user = index.get(userid);
             ProbaDistribution proba = user.getDistribution(timestamp, 0);
 
-            JsonArray result = new JsonArray();
-            for (int i = 0; i < proba.distributions.length; i++) {
-                JsonObject serie = new JsonObject();
-                double[] latlng = proba.distributions[i].getAvg();
-                double d = proba.total[i] * 100;
-                d = d / proba.global;
+            if(proba!=null &&proba.distributions.length>0) {
+                JsonArray result = new JsonArray();
+                for (int i = 0; i < proba.distributions.length; i++) {
+                    JsonObject serie = new JsonObject();
+                    double[] latlng = proba.distributions[i].getAvg();
+                    double d = proba.total[i] * 100;
+                    d = d / proba.global;
 
-                serie.add("lat", latlng[0]);
-                serie.add("lng", latlng[1]);
-                serie.add("weightInt", proba.total[i]);
-                serie.add("weightTotal", proba.global);
-                serie.add("weight", d);
-                result.add(serie);
+                    serie.add("lat", latlng[0]);
+                    serie.add("lng", latlng[1]);
+                    serie.add("weightInt", proba.total[i]);
+                    serie.add("weightTotal", proba.global);
+                    serie.add("weight", d);
+                    result.add(serie);
+                }
+
+                httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
+                httpServerExchange.setStatusCode(StatusCodes.OK);
+                System.out.println("Received request at: " + timestamp + " , returned: " + proba.distributions.length + " profile points");
+                httpServerExchange.getResponseSender().send(result.toString());
             }
-
-            httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-            httpServerExchange.setStatusCode(StatusCodes.OK);
-            System.out.println("Received request at: " + timestamp + " , returned: " + proba.distributions.length + " profile points");
-            httpServerExchange.getResponseSender().send(result.toString());
+            else{
+                httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
+                httpServerExchange.setStatusCode(StatusCodes.NO_CONTENT);
+                System.out.println("Received request at: " + timestamp + " , returned: 0 profile points");
+                httpServerExchange.getResponseSender().send("");
+            }
 
         }
     };

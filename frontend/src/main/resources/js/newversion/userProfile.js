@@ -178,6 +178,10 @@ var UserProfile = function () {
                         var processtime = performance.now() - starttime;
                         document.getElementById('messagelbl').innerHTML = "loaded " + resultJson.length + " profile points in: " + parseFloat(processtime).toFixed(2) + " ms";
                     }
+                    else if(xmlhttp.status == 204){
+                        var processtime = performance.now() - starttime;
+                        document.getElementById('messagelbl').innerHTML = "No profile points found for this user, loaded in: " + parseFloat(processtime).toFixed(2) + " ms";
+                    }
                     else if (xmlhttp.status == 400) {
                         alert('There was an error 400');
                     }
