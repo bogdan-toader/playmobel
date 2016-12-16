@@ -124,7 +124,7 @@ var UserProfile = function () {
 
     function addMarker(nodeID, day, hour, lat, lng, probability) {
         var marker = L.marker([lat, lng])
-            .bindPopup(day + " at " + hour + " o'clock, probability: " + Number(probability).toFixed(2) + "%");
+            .bindPopup("user: "+nodeID+ ", "+day + " at " + hour + " o'clock, probability: " + Number(probability).toFixed(2) + "%");
         marker["node"] = nodeID;
         markers.addLayer(marker);
     }
@@ -150,8 +150,8 @@ var UserProfile = function () {
 
             var date = new Date();
             date.setTime(timestamp);
-            var hour=DAYS[date.getUTCDay()];
-            var day=date.getUTCHours();
+            var day=DAYS[date.getUTCDay()];
+            var hour=date.getUTCHours();
 
             xmlhttp.onreadystatechange = function () {
                 if (xmlhttp.readyState == XMLHttpRequest.DONE) {
