@@ -11,6 +11,7 @@ import io.undertow.util.HttpString;
 import io.undertow.util.StatusCodes;
 import lu.mobilab.playmobel.backendv2.util.GMMConfig;
 import lu.mobilab.playmobel.backendv2.util.User;
+import org.json.JSONObject;
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 
 import java.io.BufferedReader;
@@ -22,15 +23,16 @@ import java.util.HashMap;
 
 public class BackendRunner {
 
+    //:)
+//    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
+//    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
+//    public final static String DATA_DIR_SEL = DATA_DIR;
 
-    public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
-    public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
-    public final static String DATA_DIR_SEL = DATA_DIR;
 
-
-//    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
-//    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
-//    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
+    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_GOOGLE = "/Users/bogdan.toader/Documents/Datasets/google/";
+    public final static String DATA_DIR_SEL = DATA_GOOGLE;
 
 
     private static final DecimalFormat df = new DecimalFormat("###,###.#");
@@ -44,7 +46,26 @@ public class BackendRunner {
 
     private Undertow server;
 
-    private void loadData() {
+
+    private static String readFile(File filename) {
+        String result = "";
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(filename));
+            StringBuilder sb = new StringBuilder();
+            String line = br.readLine();
+            while (line != null) {
+                sb.append(line);
+                line = br.readLine();
+            }
+            result = sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+
+    private void loadDataChinese() {
         File folder = new File(DATA_DIR_SEL);
         File[] listOfFiles = folder.listFiles();
         String path;
@@ -58,9 +79,9 @@ public class BackendRunner {
 
         for (int i = 0; i < listOfFiles.length; i++) {
             if (listOfFiles[i].isDirectory()) {
-                String userName = listOfFiles[i].getName();
-                User user = new User(userName, config);
-                index.put(userName, user);
+                String username = listOfFiles[i].getName();
+                User user = new User(username, config);
+                index.put(username, user);
                 path = listOfFiles[i].getPath() + "/Trajectory/";
                 subfolder = new File(path);
                 listOfsubFiles = subfolder.listFiles();
@@ -92,16 +113,13 @@ public class BackendRunner {
 
                     }
                 }
-
-                long endtime = System.currentTimeMillis();
-                double time = (endtime - starttime) / 1000.0;
-                double speed = totallines;
-                speed = speed / time;
-                System.out.println("Loaded user: " + userName + ", total: " + intf.format(totallines) + " timepoints, elapsed time: " + df.format(time) + " s, speed: " + intf.format(speed) + " values/sec");
-
+                reportTime(starttime, totallines, username);
             }
         }
+        finalReport(starttime, totallines);
+    }
 
+    private void finalReport(long starttime, int totallines) {
         usernames = new String[index.keySet().size()];
         int c = 0;
         for (String key : index.keySet()) {
@@ -114,13 +132,72 @@ public class BackendRunner {
         double speed = totallines;
         speed = speed / time;
         System.out.println("");
-        System.out.println("IMPORT COMPLETED, Loaded " + usernames.length + " users with: " + intf.format(totallines) + " timepoints, elapsed time: " + df.format(time)+ " s, speed: " + intf.format(speed) + " values/sec");
+        System.out.println("IMPORT COMPLETED, Loaded " + usernames.length + " users with: " + intf.format(totallines) + " timepoints, elapsed time: " + df.format(time) + " s, speed: " + intf.format(speed) + " values/sec");
         System.out.println("");
+    }
+
+    private static void reportTime(long starttime, int totallines, String userName) {
+        long endtime = System.currentTimeMillis();
+        double time = (endtime - starttime) / 1000.0;
+        double speed = totallines;
+        speed = speed / time;
+        System.out.println("Loaded user: " + userName + ", total: " + intf.format(totallines) + " timepoints, elapsed time: " + df.format(time) + " s, speed: " + intf.format(speed) + " values/sec");
+
+    }
+
+    private void loadDataGoogle() {
+
+        File folder = new File(DATA_DIR_SEL);
+        File[] listOfFiles = folder.listFiles();
+        File[] listOfsubFiles;
+        int totallines = 0;
+        long starttime = System.currentTimeMillis();
+
+        try {
+            for (int i = 0; i < listOfFiles.length; i++) {
+                if (listOfFiles[i].isDirectory()) {
+                    String username = listOfFiles[i].getName();
+                    listOfsubFiles = listOfFiles[i].listFiles();
+                    User user = new User(username, config);
+                    index.put(username, user);
+
+                    for (int j = 0; j < listOfsubFiles.length; j++) {
+                        if (listOfsubFiles[j].isFile() && listOfsubFiles[j].getName().endsWith(".json")) {
+
+                            String jsonData = readFile(listOfsubFiles[j]);
+                            JSONObject jobj = new JSONObject(jsonData);
+
+                            for (Object objLoc : jobj.getJSONArray("locations")) {
+                                JSONObject loc = (JSONObject) objLoc;
+                                long timestamp = Long.parseLong(loc.get("timestampMs").toString());
+                                long latitudeE7 = Long.parseLong(loc.get("latitudeE7").toString());
+                                long longitudeE7 = Long.parseLong(loc.get("longitudeE7").toString());
+                                double[] latlng = new double[2];
+                                latlng[0] = latitudeE7 / 10000000.0;
+                                latlng[1] = longitudeE7 / 10000000.0;
+
+                                user.insert(timestamp, latlng);
+                                user.learn(timestamp, latlng);
+                                totallines++;
+                            }
+                            reportTime(starttime, totallines, username);
+                        }
+                    }
+                }
+            }
+            finalReport(starttime, totallines);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     public void start() {
 
-        loadData();
+        if (DATA_DIR_SEL.toLowerCase().contains("google")) {
+            loadDataGoogle();
+        } else {
+            loadDataChinese();
+        }
 
         if (server == null) {
             server = Undertow.builder()
