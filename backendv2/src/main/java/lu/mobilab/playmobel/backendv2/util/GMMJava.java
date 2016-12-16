@@ -1,4 +1,4 @@
-package lu.mobilab.playmobel.backend.util.javagmm;
+package lu.mobilab.playmobel.backendv2.util;
 
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 import org.mwg.ml.common.matrix.VolatileMatrix;

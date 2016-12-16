@@ -1,4 +1,4 @@
-package lu.mobilab.playmobel.backend.util.javagmm;
+package lu.mobilab.playmobel.backendv2;
 
 
 import com.eclipsesource.json.JsonArray;
@@ -9,7 +9,8 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
 import io.undertow.util.StatusCodes;
-import org.mwg.Graph;
+import lu.mobilab.playmobel.backendv2.util.GMMConfig;
+import lu.mobilab.playmobel.backendv2.util.User;
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 
 import java.io.BufferedReader;
@@ -32,12 +33,14 @@ public class BackendRunner {
 //    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
 
 
-    private static final double err = 0.00001;
-    private static final double[] gpserr = {err, err};
-    private static final GMMConfig config = new GMMConfig(3, 10, 3, 10, 2, gpserr);
-    private static final HashMap<String, User> index = new HashMap<>();
     private static final DecimalFormat df = new DecimalFormat("###,###.##");
+    private static final DecimalFormat intf = new DecimalFormat("###,###,###");
 
+    private final double err = 0.00001;
+    private final double[] gpserr = {err, err};
+    private final GMMConfig config = new GMMConfig(3, 10, 3, 10, 2, gpserr);
+    private final HashMap<String, User> index = new HashMap<>();
+    private String[] usernames;
 
     private Undertow server;
 
@@ -94,9 +97,24 @@ public class BackendRunner {
                 long time = (endtime - starttime) / 1000;
                 double speed = totallines;
                 speed = speed / time;
-                System.out.println("Loaded user: " + userName + ", total: " + totallines + " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
+                System.out.println("Loaded user: " + userName + ", total: " + intf.format(totallines)+ " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
             }
         }
+
+        usernames=new String[index.keySet().size()];
+        int c=0;
+        for (String key : index.keySet()) {
+            usernames[c]=key;
+            c++;
+        }
+        Arrays.sort(usernames);
+        long endtime = System.currentTimeMillis();
+        long time = (endtime - starttime) / 1000;
+        double speed = totallines;
+        speed = speed / time;
+        System.out.println("");
+        System.out.println("IMPORT COMPLETED, Loaded "+usernames.length+" users with: " + intf.format(totallines) + " timepoints, elapsed time: " + time + "s, speed: " + df.format(speed) + " values/sec");
+        System.out.println("");
     }
 
     public void start() {
@@ -139,7 +157,7 @@ public class BackendRunner {
 
             httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
             httpServerExchange.setStatusCode(StatusCodes.OK);
-            System.out.println("Received request at: " + timestamp + " , returned: " + total + " users");
+            System.out.println("Get all positions request at time: " + timestamp + ", returned: " + total + " users");
             httpServerExchange.getResponseSender().send(result.toString());
         }
     };
@@ -170,13 +188,13 @@ public class BackendRunner {
 
                 httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
                 httpServerExchange.setStatusCode(StatusCodes.OK);
-                System.out.println("Received request at: " + timestamp + " , returned: " + proba.distributions.length + " profile points");
+                System.out.println("Get Profile of user: "+userid + " at time: " + timestamp  + ", returned: " + proba.distributions.length + " profile points");
                 httpServerExchange.getResponseSender().send(result.toString());
             }
             else{
                 httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
                 httpServerExchange.setStatusCode(StatusCodes.NO_CONTENT);
-                System.out.println("Received request at: " + timestamp + " , returned: 0 profile points");
+                System.out.println("Get Profile of user: "+userid + " at time: " + timestamp + ", returned: 0 profile points");
                 httpServerExchange.getResponseSender().send("");
             }
 
@@ -190,14 +208,7 @@ public class BackendRunner {
 
             JsonArray result = new JsonArray();
 
-            String[] temp=new String[index.keySet().size()];
-            int c=0;
-            for (String key : index.keySet()) {
-                temp[c]=key;
-                c++;
-            }
-            Arrays.sort(temp);
-            for (String key : temp) {
+            for (String key : usernames) {
                 result.add(key);
             }
 

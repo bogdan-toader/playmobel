@@ -1,4 +1,4 @@
-package lu.mobilab.playmobel.backend.util.javagmm;
+package lu.mobilab.playmobel.backendv2.util;
 
 /**
  * Created by assaa on 15/12/2016.

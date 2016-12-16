@@ -71,11 +71,8 @@ var DemoMap = function () {
 
     function addMarker(nodeID, lat, lng) {
         var marker = L.marker([lat, lng])
-            .bindPopup("user Id: " + nodeID);
+            .bindPopup("user Id: " + e.target.node + " (lat,lng): " + e.latlng.lat + "," + e.latlng.lng);
         marker["node"] = nodeID;
-        marker.on('click', function (e) {
-            alert("user Id: " + e.target.node + " (lat,lng): " + e.latlng.lat + "," + e.latlng.lng);
-        });
         markers.addLayer(marker);
     };
 
