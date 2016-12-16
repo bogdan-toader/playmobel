@@ -1,9 +1,9 @@
-package org.mwg.ml.algorithm.profiling.javagmm;
+package lu.mobilab.playmobel.backend.util.javagmm;
 
-import org.mwg.ml.algorithm.profiling.KMeans;
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
-import org.mwg.ml.common.matrix.Matrix;
+import org.mwg.ml.common.matrix.VolatileMatrix;
 import org.mwg.ml.common.matrix.operation.MultivariateNormalDistribution;
+import org.mwg.struct.Matrix;
 
 import java.util.ArrayList;
 
@@ -345,11 +345,11 @@ public class GMMJava {
 
 
     public ProbaDistribution generateDistributions(int reqlevel) {
-        final int dim = sum.length;
-        if (dim == 0) {
+
+        if (sum == null || sum.length==0) {
             return null;
         }
-
+        final int dim = sum.length;
         final double[] err = rootconfig.resolution;
 
         ArrayList<GMMJava> current = new ArrayList<>();
@@ -383,7 +383,7 @@ public class GMMJava {
         }
 
 
-        Matrix covBackup = new Matrix(null, dim, dim);
+        Matrix covBackup = VolatileMatrix.empty(dim,dim);
         for (int i = 0; i < dim; i++) {
             covBackup.set(i, i, err[i]);
         }
@@ -438,14 +438,14 @@ public class GMMJava {
                     }
                 }
             }
-            return new Matrix(covariances, features, features);
+            return VolatileMatrix.wrap(covariances, features, features);
         } else {
             return null;
         }
     }
 
 
-    public void learn(double[] values) {
+    public void learnVector(double[] values) {
         GMMJava result = this;
 
         while (result != null) {

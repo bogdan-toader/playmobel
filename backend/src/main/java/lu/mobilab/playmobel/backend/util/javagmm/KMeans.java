@@ -1,4 +1,4 @@
-package org.mwg.ml.algorithm.profiling;
+package lu.mobilab.playmobel.backend.util.javagmm;
 
 import java.util.Random;
 

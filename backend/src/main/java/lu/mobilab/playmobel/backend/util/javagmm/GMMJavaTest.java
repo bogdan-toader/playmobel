@@ -1,4 +1,4 @@
-package org.mwg.ml.algorithm.profiling.javagmm;
+package lu.mobilab.playmobel.backend.util.javagmm;
 
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 
@@ -33,7 +33,7 @@ public class GMMJavaTest {
             for(int j=0; j<dim;j++){
                 var[j]=random.nextDouble();
             }
-            gmm.learn(var);
+            gmm.learnVector(var);
             if(i%10000==0){
                 long endtime=System.currentTimeMillis();
                 double elapsed=endtime-starttime;
