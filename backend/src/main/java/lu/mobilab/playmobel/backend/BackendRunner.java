@@ -88,7 +88,7 @@ public class BackendRunner {
                                         profiler.set(GaussianMixtureNode.LEVEL, Type.INT, 2);
                                         profiler.set(GaussianMixtureNode.WIDTH, Type.INT, 10);
                                         profiler.set(GaussianMixtureNode.COMPRESSION_FACTOR, Type.DOUBLE, 3.0);
-                                        profiler.set(GaussianMixtureNode.PRECISION, Type.DOUBLE_ARRAY, gpserr);
+                                        profiler.set(GaussianMixtureNode.RESOLUTION, Type.DOUBLE_ARRAY, gpserr);
                                         user.addToRelation("profiler" + i, profiler);
                                         context.defineVariable("profiler" + i, profiler);
                                         profiler.free();

@@ -24,7 +24,7 @@ public class BackendRunner {
 
     public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
     public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
-    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
+    public final static String DATA_DIR_SEL = DATA_DIR;
 
 
 //    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";

@@ -147,13 +147,33 @@ var UserProfile = function () {
 
             var starttime = performance.now();
             var xmlhttp = new XMLHttpRequest();
+
+            var date = new Date();
+            date.setTime(timestamp);
+            var hour=DAYS[date.getUTCDay()];
+            var day=date.getUTCHours();
+
             xmlhttp.onreadystatechange = function () {
                 if (xmlhttp.readyState == XMLHttpRequest.DONE) {
                     if (xmlhttp.status == 200) {
                         var resultJson = JSON.parse(xmlhttp.responseText);
+
+                        var maxPoint=0;
+                        var testData = {};
+                        testData.data = [];
+                        markers.clearLayers();
                         for (var i = 0; i < resultJson.length; i++) {
 
+                            testData.data.push({lat: resultJson[i].lat, lng: resultJson[i].lng, count: resultJson[i].weightInt});
+                            addMarker(selectedUser, day, hour, resultJson[i].lat, resultJson[i].lng, resultJson[i].weight);
+
+                            if (resultJson[i].weightInt > maxPoint) {
+                                maxPoint = resultJson[i].weightInt ;
+                            }
                         }
+
+                        testData.max = maxPoint;
+                        heatmap.setData(testData);
 
                         var processtime = performance.now() - starttime;
                         document.getElementById('messagelbl').innerHTML = "loaded " + resultJson.length + " profile points in: " + parseFloat(processtime).toFixed(2) + " ms";
