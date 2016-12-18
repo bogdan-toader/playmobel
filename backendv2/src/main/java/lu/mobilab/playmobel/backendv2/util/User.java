@@ -5,10 +5,7 @@ import org.mwg.structure.distance.Distance;
 import org.mwg.structure.distance.Distances;
 import org.mwg.structure.distance.GeoDistance;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.NavigableSet;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by assaad on 16/12/2016.
@@ -17,7 +14,7 @@ public class User {
     private TreeMap<Long, double[]> userLatLng;
     private String userId;
     private TreeMap<Long, GMMJava[]> profiles;
-    private static Calendar calendar = Calendar.getInstance();
+    private static Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
     private long profileDuration;
     private int minPrecision;
     private GMMConfig config;
@@ -37,6 +34,7 @@ public class User {
     private static int getProfileId(final long timestamp, int minPrecision) {
         Date time = new Date(timestamp);
         calendar.setTime(time);
+
         int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
         int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
         int min = calendar.get(Calendar.MINUTE);
@@ -125,7 +123,7 @@ public class User {
     }
 
     public double[] getProbaLocation(double[] latlng, double radius, int minPrecision, long startTime, long endTime) {
-        long st=System.currentTimeMillis();
+        long st = System.currentTimeMillis();
         NavigableSet<Long> keyset = userLatLng.navigableKeySet().subSet(startTime, true, endTime, true);
 
         int timeslots = 7 * 24 * 60 / minPrecision;
@@ -133,9 +131,10 @@ public class User {
         int[] inside = new int[timeslots];
         int[] total = new int[timeslots];
 
-        for (Long timekey : keyset) {
+        //for (Long timekey : keyset) {
+        for (long timekey = startTime; timekey < endTime; timekey += minPrecision * 60 * 1000) {
             int profileId = getProfileId(timekey, minPrecision);
-            double[] userlatlng = userLatLng.get(timekey);
+            double[] userlatlng = userLatLng.get(userLatLng.floorKey(timekey));
             if (distance.measure(latlng, userlatlng) <= radius) {
                 inside[profileId]++;
                 totalinside++;
@@ -153,7 +152,7 @@ public class User {
         long endtime = System.currentTimeMillis();
         if (keyset.size() != 0) {
             double d = totalinside * 100.0 / keyset.size();
-            System.out.println("Found: " + keyset.size() + " points, " + totalinside + " inside this location, overall proba: -> " + d + " %, calculation time: "+(endtime-st)+" ms");
+            System.out.println("Found: " + keyset.size() + " points, " + totalinside + " inside this location, overall proba: -> " + d + " %, calculation time: " + (endtime - st) + " ms");
         }
 
         return proba;

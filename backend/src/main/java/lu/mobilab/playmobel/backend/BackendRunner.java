@@ -12,6 +12,7 @@ import org.mwg.task.*;
 import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.TimeZone;
 
 import static org.mwg.core.task.Actions.*;
 
@@ -38,7 +39,7 @@ public class BackendRunner {
     public final static String LEVEL_DB = "/Users/bogdan.toader/Documents/Datasets/leveldb/";
 
 
-    private static Calendar calendar = Calendar.getInstance();
+    private static Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
     private static Node createUser(Graph g, String userFolderId) {
         Node user1 = g.newNode(0, 0);

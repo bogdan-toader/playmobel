@@ -84,6 +84,8 @@ public class NDTreeConfig {
             if (resolution[i] <= 0) {
                 throw new RuntimeException("Resolution should always be > 0");
             }
+            //optimisation not to multiply akways
+            resolution[i]=2*resolution[i];
         }
         this._min = min;
         this._max = max;

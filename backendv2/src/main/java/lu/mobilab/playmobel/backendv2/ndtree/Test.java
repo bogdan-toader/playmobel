@@ -19,9 +19,9 @@ public class Test {
     public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
     public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
     public final static String DATA_GOOGLE = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/google/";
-    public final static String DATA_DIR_SEL = DATA_DIR;
+    public final static String DATA_DIR_SEL = DATA_GOOGLE;
 
-    private static Calendar calendar = Calendar.getInstance();
+    private static Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
     private static void loadDataChinese(NDTree profile, HashMap<String, Integer> users) {
         File folder = new File(DATA_DIR_SEL);
@@ -43,6 +43,7 @@ public class Test {
                 path = listOfFiles[i].getPath() + "/Trajectory/";
                 subfolder = new File(path);
                 listOfsubFiles = subfolder.listFiles();
+                int usersize = 0;
                 for (int j = 0; j < listOfsubFiles.length; j++) {
                     if (listOfsubFiles[j].isFile() && listOfsubFiles[j].getName().endsWith(".plt")) {
 
@@ -68,6 +69,7 @@ public class Test {
 
                                 //Decompose and insert to profile here
                                 profile.insert(input);
+                                usersize++;
                                 totallines++;
                             }
                         } catch (Exception ex) {
@@ -75,7 +77,7 @@ public class Test {
                         }
                     }
                 }
-                reportTime(starttime, userid + 1, totallines, username);
+                reportTime(starttime, usersize, totallines, username);
             }
         }
         finalReport(starttime, totallines);
@@ -119,6 +121,7 @@ public class Test {
                     for (int j = 0; j < listOfsubFiles.length; j++) {
                         if (listOfsubFiles[j].isFile() && listOfsubFiles[j].getName().endsWith(".json")) {
 
+                            int usersize = 0;
                             String jsonData = readFile(listOfsubFiles[j]);
                             JSONObject jobj = new JSONObject(jsonData);
                             for (Object objLoc : jobj.getJSONArray("locations")) {
@@ -133,15 +136,16 @@ public class Test {
                                 int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
                                 int min = calendar.get(Calendar.MINUTE);
                                 input[1] = day;
-                                input[2] = hour+min/60.0;
+                                input[2] = hour + min / 60.0;
                                 input[3] = latitudeE7 / 10000000.0;
                                 input[4] = longitudeE7 / 10000000.0;
 
                                 profile.insert(input);
+                                usersize++;
                                 totallines++;
                             }
                             userId++;
-                            reportTime(starttime, userId, totallines, username);
+                            reportTime(starttime, usersize, totallines, username);
                         }
                     }
                 }
@@ -189,7 +193,7 @@ public class Test {
         double time = (endtime - starttime) / 1000.0;
         double speed = totallines;
         speed = speed / time;
-        System.out.println("User: " + String.format("%8s", userName) + "\t size: " + String.format("%10s", intf.format(usersize)) + "\t total: " + String.format("%11s", intf.format(totallines)) + " timepoints\t elapsed time: " + String.format("%5s", df.format(time)) + " s\t speed: " + String.format("%8s", intf.format(speed)) + " values/sec");
+        System.out.println("User: " + String.format("%8s", userName) + "\t size: " + String.format("%9s", intf.format(usersize)) + "\t total: " + String.format("%11s", intf.format(totallines)) + " timepoints\t elapsed time: " + String.format("%5s", df.format(time)) + " s\t speed: " + String.format("%8s", intf.format(speed)) + " values/sec");
 
     }
 
@@ -208,7 +212,7 @@ public class Test {
         double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
         double[] max = new double[]{200, 7, 24, 90, 180};
         double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
-        int maxPerLevel = 20;
+        int maxPerLevel = 160;
         NDTreeConfig config = new NDTreeConfig(min, max, resolution, maxPerLevel);
         NDTree tree = new NDTree(config);
 
@@ -223,12 +227,38 @@ public class Test {
 
         tree.print();
 
-        double[] reqmin = new double[]{0, 0, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-        double[] reqmax = new double[]{0, 7, 23, 90, 180};
+        double[] reqmin = new double[]{0, 0, 00, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+        double[] reqmax = new double[]{0, 7, 03, 90, 180};
 
-        NDTreeResult filter = tree.filter(reqmin, reqmax, null);
+        NDTreeResult filter = tree.filter(reqmin, reqmax);
         System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
         filter.sortAndDisplay(10);
+
+        System.out.println("");
+        String[] groupby =new String[]{"*","*","*","0.008", "0.015"};
+        NDTreeResult grouped =filter.groupBy(groupby);
+        System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
+        grouped.sortAndDisplay(10);
+
+
+
+
+
+        reqmin = new double[]{0, 0, 00, 49.622525, 6.148842}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+        reqmax = new double[]{0, 7, 24, 49.642525, 6.188842};
+
+        filter = tree.filter(reqmin, reqmax);
+        System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
+        filter.sortAndDisplay(10);
+
+        System.out.println("");
+        groupby =new String[]{"*","1","1","*", "*"};
+        grouped =filter.groupBy(groupby);
+        System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
+        grouped.sortAndDisplay(grouped.getResult().size());
+        int x=0;
+
+
 
 
     }

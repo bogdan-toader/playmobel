@@ -205,6 +205,16 @@ public class BackendRunner {
             loadDataChinese();
         }
 
+        User assaad = index.get("assaad");
+        double[] proba = assaad.getProbaLocation(new double[]{49.632510, 6.168830}, 3000, 10, 1450369538000l, 1481991938000l);
+        double d;
+
+        System.out.println("printing assaad");
+        for (int i = 0; i < proba.length; i++) {
+            d = i * 7.0 / proba.length;
+            System.out.println(d + "," + proba[i]);
+        }
+
 
         if (server == null) {
             server = Undertow.builder()
