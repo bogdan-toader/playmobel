@@ -205,18 +205,23 @@ public class BackendRunner {
             loadDataChinese();
         }
 
-        User assaad = index.get("assaad");
+        double[] minlatlngworld = new double[]{-90, -180};              //min bound of the world
+        double[] maxlatlngworld = new double[]{90, 180};                //max bound of the world
 
-        double[] minlatlng = new double[]{49.494902, 5.783112};
-        double[] maxlatlng = new double[]{49.877265, 6.464900};
+        double[] minlatlng = new double[]{49.494902, 5.783112};         //min bound of lux
+        double[] maxlatlng = new double[]{49.877265, 6.464900};         //max bound of lux
 
-        double[] searchWork = new double[]{49.632510, 6.168830};
-        double[] searchHome = new double[]{49.508012, 6.050853};
+        double[] searchWork = new double[]{49.632510, 6.168830};        //work
+        double[] searchHome = new double[]{49.508012, 6.050853};        //home
+        double[] searchGarnich=  new double[]{49.621166, 5.935100};     //observation
 
-        double[] proba = assaad.getProbaLocation(searchHome, 1000, minlatlng, maxlatlng, 5, 1450369538000l, 1481991938000l, false);
+        int minPrecision =5; //Search every 5 minutes of the full week
+        double[] proba = index.get("assaad").getProbaLocation(searchGarnich, 1000, minlatlng, maxlatlng, minPrecision, 1450369538000l, 1481991938000l, false);
+        //you get: decimal day, decimal hour, probability in %
+
         double d, h;
 
-        System.out.println("printing assaad");
+        System.out.println("printing probabilities");
         for (int i = 0; i < proba.length; i++) {
             d = i * 7.0 / proba.length;
             h = d - ((int) d);
