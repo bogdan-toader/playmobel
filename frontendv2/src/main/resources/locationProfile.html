@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PlayMobel map view</title>
+
+    <!-- Include Required Prerequisites -->
+    <script type="text/javascript" src="//cdn.jsdelivr.net/jquery/1/jquery.min.js"></script>
+    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap/3/css/bootstrap.css" />
+
+    <!-- Include Date Range Picker -->
+    <script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+
+
+    <link rel="stylesheet" href="plugins/leaflet/leaflet.css"/>
+    <script src="plugins/leaflet/leaflet.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="plugins/leafletmarker/MarkerCluster.css">
+    <link rel="stylesheet" type="text/css" href="plugins/leafletmarker/MarkerCluster.Default.css">
+    <script src="plugins/leafletmarker/leaflet.markercluster.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="css/demo.css">
+
+
+</head>
+
+<body>
+
+
+<div class="row">
+
+    <div id="mapid" class="col-md-10 map"></div>
+
+    <div class="col-md-2" >
+        <panel id="acc1" class="panel-heading">
+            <!--<h2><a href="panel-body">Inputs panel</a></h2>-->
+            <h2>Inputs panel</h2>
+
+            <div>
+                <label id="messagelbl"></label>
+            </div>
+            <div>
+                <select id="userDropDown" name="user list" onchange="mapping.dropDownChange()">
+                </select>
+            </div>
+            <div>
+            <input type="text" name="daterange" value="01/01/2016 - 12/31/2016" />
+            <script type="text/javascript">
+                $(function() {
+                    $('input[name="daterange"]').daterangepicker();
+                });
+            </script>
+            </div>
+            <div>
+                <label for="radius">Radius (in m):</label>
+                <input type="text" name="radius" id="radius" value="1000"><br>
+            </div>
+
+            <div>
+                <label for="time">Time sensitivity (in min)</label>
+                <input type="text" name="time" id="time" value="30"><br>
+            </div>
+
+            <div>
+                <button onclick="generateProfile()">Submit</button>
+            </div>
+
+
+        </panel>
+    </div>
+</div>
+
+
+
+<script src="js/locationProfile.js"></script>
+<script>
+    var mapping = UserProfile();
+    mapping.init();
+</script>
+
+
+</body>
+</html>
+
+

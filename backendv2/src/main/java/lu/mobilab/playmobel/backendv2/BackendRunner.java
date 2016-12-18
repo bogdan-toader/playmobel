@@ -19,7 +19,6 @@ import java.io.*;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.concurrent.TimeUnit;
 
 public class BackendRunner {
 
@@ -39,11 +38,11 @@ public class BackendRunner {
     private static final DecimalFormat df = new DecimalFormat("###,###.#");
     private static final DecimalFormat intf = new DecimalFormat("###,###,###");
 
-    private final double err = 0.00001;
-    private final double[] gpserr = {err, err};
+    private final double[] gpserr = {0.008, 0.015};
     private final GMMConfig config = new GMMConfig(3, 10, 3, 10, 2, gpserr);
     private final HashMap<String, User> index = new HashMap<>();
-    private final long profileDuration = 3*30* 24 * 3600 * 1000l; //profile duration is 3 months
+    private final long profileDuration = 4 * 30 * 24 * 3600 * 1000l; //profile duration is 3 months
+    private final int profileprecision = 60;
     private String[] usernames;
 
     private Undertow server;
@@ -82,7 +81,8 @@ public class BackendRunner {
         for (int i = 0; i < listOfFiles.length; i++) {
             if (listOfFiles[i].isDirectory()) {
                 String username = listOfFiles[i].getName();
-                User user = new User(username, config, profileDuration);
+                int usertot = 0;
+                User user = new User(username, config, profileDuration, profileprecision);
                 index.put(username, user);
                 path = listOfFiles[i].getPath() + "/Trajectory/";
                 subfolder = new File(path);
@@ -102,6 +102,7 @@ public class BackendRunner {
 
                                 double x = Double.parseDouble(substr[4]) * 86400;
                                 long timestamp = ((long) x - 2209161600l) * 1000;
+                                usertot++;
 
                                 user.insert(timestamp, latlng);
                                 user.learn(timestamp, latlng);
@@ -115,7 +116,7 @@ public class BackendRunner {
 
                     }
                 }
-                reportTime(starttime, totallines, username);
+                reportTime(starttime, usertot, totallines, username);
             }
         }
         finalReport(starttime, totallines);
@@ -138,14 +139,15 @@ public class BackendRunner {
         System.out.println("");
     }
 
-    private static void reportTime(long starttime, int totallines, String userName) {
+    private static void reportTime(long starttime, int usersize, int totallines, String userName) {
         long endtime = System.currentTimeMillis();
         double time = (endtime - starttime) / 1000.0;
         double speed = totallines;
         speed = speed / time;
-        System.out.println("Loaded user: " + userName + ", total: " + intf.format(totallines) + " timepoints, elapsed time: " + df.format(time) + " s, speed: " + intf.format(speed) + " values/sec");
+        System.out.println("User: " + String.format("%8s", userName) + "\t size: " + String.format("%10s", intf.format(usersize)) + "\t total: " + String.format("%11s", intf.format(totallines)) + " timepoints\t elapsed time: " + String.format("%5s", df.format(time)) + " s\t speed: " + String.format("%8s", intf.format(speed)) + " values/sec");
 
     }
+
 
     private void loadDataGoogle() {
 
@@ -160,7 +162,7 @@ public class BackendRunner {
                 if (listOfFiles[i].isDirectory()) {
                     String username = listOfFiles[i].getName();
                     listOfsubFiles = listOfFiles[i].listFiles();
-                    User user = new User(username, config, profileDuration);
+                    User user = new User(username, config, profileDuration, profileprecision);
                     index.put(username, user);
 
                     for (int j = 0; j < listOfsubFiles.length; j++) {
@@ -168,6 +170,7 @@ public class BackendRunner {
 
                             String jsonData = readFile(listOfsubFiles[j]);
                             JSONObject jobj = new JSONObject(jsonData);
+                            int usertot = 0;
 
                             for (Object objLoc : jobj.getJSONArray("locations")) {
                                 JSONObject loc = (JSONObject) objLoc;
@@ -180,9 +183,10 @@ public class BackendRunner {
 
                                 user.insert(timestamp, latlng);
                                 user.learn(timestamp, latlng);
+                                usertot++;
                                 totallines++;
                             }
-                            reportTime(starttime, totallines, username);
+                            reportTime(starttime, usertot, totallines, username);
                         }
                     }
                 }
@@ -200,6 +204,7 @@ public class BackendRunner {
         } else {
             loadDataChinese();
         }
+
 
         if (server == null) {
             server = Undertow.builder()
@@ -281,6 +286,38 @@ public class BackendRunner {
         }
     };
 
+
+    private HttpHandler getProfileLocation = new HttpHandler() {
+        @Override
+        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
+            long startts = Long.parseLong(httpServerExchange.getQueryParameters().get("startts").getFirst());
+            long endts = Long.parseLong(httpServerExchange.getQueryParameters().get("endts").getFirst());
+            double lat = Double.parseDouble(httpServerExchange.getQueryParameters().get("lat").getFirst());
+            double lng = Double.parseDouble(httpServerExchange.getQueryParameters().get("lng").getFirst());
+            double radius = Double.parseDouble(httpServerExchange.getQueryParameters().get("radius").getFirst());
+            int ts = Integer.parseInt(httpServerExchange.getQueryParameters().get("ts").getFirst());
+            String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
+            User user = index.get(userid);
+
+            double[] latlng = new double[]{lat, lng};
+            double[] proba = user.getProbaLocation(latlng, radius, ts, startts, endts);
+            double d = 0;
+            JsonArray result = new JsonArray();
+
+            for (int i = 0; i < proba.length; i++) {
+                d = i * 7.0 / proba.length;
+                JsonObject serie = new JsonObject();
+                serie.add("time", d);
+                serie.add("proba", proba[i]);
+                result.add(serie);
+            }
+            httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
+            httpServerExchange.setStatusCode(StatusCodes.OK);
+            System.out.println("Profiling location: " + lat + "," + lng + " completed");
+            httpServerExchange.getResponseSender().send(result.toString());
+
+        }
+    };
 
     private HttpHandler getUsers = new HttpHandler() {
         @Override
