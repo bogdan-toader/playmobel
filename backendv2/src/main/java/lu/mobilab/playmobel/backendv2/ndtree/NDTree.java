@@ -7,6 +7,7 @@ public class NDTree {
     private double[] _max;
     private int _total = 0;
     private NDTree[] _subchildren;
+    private ArrayList<double[]> _tempValues;
     private GaussianProfile lowlevel;
     private NDTreeConfig _config;
 
@@ -24,12 +25,15 @@ public class NDTree {
                 this._max[i] = max[i];
             }
         }
+
+        this._tempValues = new ArrayList<double[]>();
     }
 
     public NDTree(NDTreeConfig config) {
         this._min = config.getMin();
         this._max = config.getMax();
         this._config = config;
+        this._tempValues = new ArrayList<double[]>();
     }
 
     private void check(double[] values) {
@@ -84,42 +88,55 @@ public class NDTree {
     public void insert(final double[] values) {
         check(values);
         _config.updateStat(values);
-        internalInsert(values, 1, _min, _max, getCenter(), _config.getResolution(), _config.getMaxPerLevel(), 0, this);
+        internalInsert(values, _min, _max, getCenter(), _config.getResolution(), _config.getMaxPerLevel(), 0, this);
     }
 
 
-    private void internalInsert(final double[] values, final int count, final double[] min, final double[] max, final double[] center, final double[] resolution, final int maxPerLevel, final int lev, final NDTree root) {
+    private void internalInsert(final double[] values, final double[] min, final double[] max, final double[] center, final double[] resolution, final int maxPerLevel, final int lev, final NDTree root) {
         //check if it has subchildrens
         if (this != root) {
             root._config.incJumpCounter();
         }
 
-        //If it has subchildren forward
         if (_subchildren != null) {
             int index = getRelationId(center, values);
             if (_subchildren[index] == null) {
                 _subchildren[index] = new NDTree(min, max, center, values);
             }
-            _subchildren[index].internalInsert(values, count, _subchildren[index]._min, _subchildren[index]._max, _subchildren[index].getCenter(), resolution, maxPerLevel, lev + 1, root);
-        }  // if it can still create subchildren, create and forward
-        else if (checkCreateLevels(min, max, resolution)) {
-            _subchildren = new NDTree[getChildren(min.length)];
-            int index = getRelationId(center, values);
-            if (_subchildren[index] == null) {
-                _subchildren[index] = new NDTree(min, max, center, values);
+            _subchildren[index].internalInsert(values, _subchildren[index]._min, _subchildren[index]._max, _subchildren[index].getCenter(), resolution, maxPerLevel, lev + 1, root);
+        } else if (_tempValues != null) {
+            // check if we can create subchildren
+            if (checkCreateLevels(min, max, resolution)) {
+                if (_tempValues.size() < maxPerLevel) {
+                    _tempValues.add(values);
+                } else {
+                    _subchildren = new NDTree[getChildren(min.length)];
+                    _tempValues.add(values);
+                    for (int i = 0; i < _tempValues.size(); i++) {
+                        final double[] toInsert = _tempValues.get(i);
+                        int index = getRelationId(center, toInsert);
+                        if (_subchildren[index] == null) {
+                            _subchildren[index] = new NDTree(min, max, center, toInsert);
+                            root._config.incCreatedNode();
+                        }
+                        _subchildren[index].internalInsert(toInsert, _subchildren[index]._min, _subchildren[index]._max, _subchildren[index].getCenter(), resolution, maxPerLevel, lev + 1, root);
+                    }
+                    _tempValues = null;
+                }
             }
-            _subchildren[index].internalInsert(values, count, _subchildren[index]._min, _subchildren[index]._max, _subchildren[index].getCenter(), resolution, maxPerLevel, lev + 1, root);
-        }
-        //Else if we reached the last level of the tree, update the profiler
-        else {
-            if (lowlevel == null) {
-                lowlevel = new GaussianProfile();
+            //Else we reached here last level of the tree, and the array is full, we need to start a profiler
+            else {
+                if (lowlevel == null) {
+                    _tempValues = null;
+                    lowlevel = new GaussianProfile();
+                }
+                lowlevel.learn(values);
             }
-            lowlevel.learnNumber(values, count);
+
         }
         //this is for everyone
         root._config.updateMaxLev(lev);
-        _total += count;
+        _total++;
     }
 
     public int size() {
@@ -195,7 +212,15 @@ public class NDTree {
 
     private void internalFilter(final double[] requestedmin, final double[] requestedmax, final NDTreeResult result) {
         if (_subchildren == null) {
-            result.add(lowlevel.getAvg(), _total);
+            if (_tempValues != null) {
+                for (double[] val : _tempValues) {
+                    if (checkInside(val, requestedmin, requestedmax)) {
+                        result.add(val, 1);
+                    }
+                }
+            } else {
+                result.add(lowlevel.getAvg(), _total);
+            }
         } else {
             for (NDTree subt : _subchildren) {
                 if (subt != null && checkbound(subt._min, subt._max, requestedmin, requestedmax)) {
@@ -215,11 +240,21 @@ public class NDTree {
         return true;
     }
 
+    private static boolean checkInside(double[] val, double[] requestedmin, double[] requestedmax) {
+        for (int i = 0; i < val.length; i++) {
+            if (val[i] < requestedmin[i] || val[i] > requestedmax[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     public void print() {
-        System.out.println("Tree size: " + size());
-        System.out.println("MAX depth: " + _config.getMaxlev());
-        System.out.println("Internal jumps: " + _config.getJumpcounter());
+        System.out.println("TREE size: " + size());
+        System.out.println("SUBTREES: " + _config.getCreatedNodes());
+        System.out.println("MAXDEPTH: " + _config.getMaxlev());
+        System.out.println("JUMPS: " + _config.getJumpcounter());
         _config.getProfile().print();
     }
 
