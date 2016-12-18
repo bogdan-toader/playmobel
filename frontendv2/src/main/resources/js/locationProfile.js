@@ -104,6 +104,10 @@ var UserProfile = function () {
         }
     }
 
+    function getAllPoints(){
+
+    }
+
     function generateProfile() {
         if (selectedUser != "") {
 

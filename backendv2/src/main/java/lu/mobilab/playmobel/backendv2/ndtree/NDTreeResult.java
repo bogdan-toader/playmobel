@@ -56,14 +56,17 @@ public class NDTreeResult {
         return global;
     }
 
-    public void sortAndDisplay(int num) {
+    public void sort() {
         res.sort(new Comparator<AtomicRes>() {
             @Override
             public int compare(AtomicRes o1, AtomicRes o2) {
                 return Integer.compare(o2.getTot(), o1.getTot());
             }
         });
+    }
 
+    public void sortAndDisplay(int num) {
+        sort();
         int disp = Math.min(num, res.size());
 
         for (int i = 0; i < disp; i++) {
@@ -128,12 +131,12 @@ public class NDTreeResult {
         int[][] fractions = convertToDenum(newresStr);
 
         //Convert newmin, newmax
-        for(int i=0;i<newdim;i++){
-            newmin[i] = (int) ((newmin[i]-1.5*newresolution[i]) * fractions[i][1]);
+        for (int i = 0; i < newdim; i++) {
+            newmin[i] = (int) ((newmin[i] - 1.5 * newresolution[i]) * fractions[i][1]);
             newmin[i] = (int) (newmin[i] / fractions[i][0]);
             newmin[i] = newmin[i] * fractions[i][0] / fractions[i][1];
 
-            newmax[i] = (int) ((newmax[i]+1.5*newresolution[i]) * fractions[i][1]);
+            newmax[i] = (int) ((newmax[i] + 1.5 * newresolution[i]) * fractions[i][1]);
             newmax[i] = (int) (newmax[i] / fractions[i][0]);
             newmax[i] = newmax[i] * fractions[i][0] / fractions[i][1];
         }
@@ -189,7 +192,7 @@ public class NDTreeResult {
         int c = 0;
         for (int i = 0; i < val.length; i++) {
             if (keep[i]) {
-                temp[c] =val[i];
+                temp[c] = val[i];
 //                temp[c] = (int) (val[i] * fractions[c][1]);
 //                temp[c] = (int) (temp[c] / fractions[c][0]);
 //                temp[c] = temp[c] * fractions[c][0] / fractions[c][1];

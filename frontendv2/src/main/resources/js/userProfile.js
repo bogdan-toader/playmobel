@@ -198,7 +198,7 @@ var UserProfile = function () {
                 }
             };
             var params = "timestamp=" + timestamp + "&userid=" + selectedUser;
-            xmlhttp.open("GET", "http://" + window.location.hostname + ":8081/getProfile?"+ encodeURI(params), true);
+            xmlhttp.open("GET", "http://" + window.location.hostname + ":8081/getMostImportantLocs?"+ encodeURI(params), true);
             xmlhttp.send();
         }
         else {

@@ -9,6 +9,9 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
 import io.undertow.util.StatusCodes;
+import lu.mobilab.playmobel.backendv2.ndtree.NDTree;
+import lu.mobilab.playmobel.backendv2.ndtree.NDTreeConfig;
+import lu.mobilab.playmobel.backendv2.ndtree.NDTreeResult;
 import lu.mobilab.playmobel.backendv2.util.GMMConfig;
 import lu.mobilab.playmobel.backendv2.util.LatLngObj;
 import lu.mobilab.playmobel.backendv2.util.User;
@@ -17,8 +20,7 @@ import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 
 import java.io.*;
 import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 
 public class BackendRunner {
 
@@ -44,8 +46,10 @@ public class BackendRunner {
     private final long profileDuration = 4 * 30 * 24 * 3600 * 1000l; //profile duration is 3 months
     private final int profileprecision = 60;
     private String[] usernames;
+    private static Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
     private Undertow server;
+    private NDTree tree;
 
 
     private static String readFile(File filename) {
@@ -63,63 +67,6 @@ public class BackendRunner {
             e.printStackTrace();
         }
         return result;
-    }
-
-
-    private void loadDataChinese() {
-        File folder = new File(DATA_DIR_SEL);
-        File[] listOfFiles = folder.listFiles();
-        String path;
-        File subfolder;
-        File[] listOfsubFiles;
-
-        int totallines = 0;
-        long starttime = System.currentTimeMillis();
-        String line;
-
-
-        for (int i = 0; i < listOfFiles.length; i++) {
-            if (listOfFiles[i].isDirectory()) {
-                String username = listOfFiles[i].getName();
-                int usertot = 0;
-                User user = new User(username, config, profileDuration, profileprecision);
-                index.put(username, user);
-                path = listOfFiles[i].getPath() + "/Trajectory/";
-                subfolder = new File(path);
-                listOfsubFiles = subfolder.listFiles();
-                for (int j = 0; j < listOfsubFiles.length; j++) {
-                    if (listOfsubFiles[j].isFile() && listOfsubFiles[j].getName().endsWith(".plt")) {
-
-                        try (BufferedReader br = new BufferedReader(new FileReader(listOfsubFiles[j]))) {
-                            for (int k = 0; k < 6; k++) {
-                                line = br.readLine();
-                            }
-                            while ((line = br.readLine()) != null) {
-                                String[] substr = line.split(",");
-                                double[] latlng = new double[2];
-                                latlng[0] = Double.parseDouble(substr[0]);
-                                latlng[1] = Double.parseDouble(substr[1]);
-
-                                double x = Double.parseDouble(substr[4]) * 86400;
-                                long timestamp = ((long) x - 2209161600l) * 1000;
-                                usertot++;
-
-                                user.insert(timestamp, latlng);
-                                user.learn(timestamp, latlng);
-
-                                totallines++;
-                            }
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-
-
-                    }
-                }
-                reportTime(starttime, usertot, totallines, username);
-            }
-        }
-        finalReport(starttime, totallines);
     }
 
     private void finalReport(long starttime, int totallines) {
@@ -149,14 +96,84 @@ public class BackendRunner {
     }
 
 
-    private void loadDataGoogle() {
+    private void loadDataChinese(NDTree profile) {
+        File folder = new File(DATA_DIR_SEL);
+        File[] listOfFiles = folder.listFiles();
+        String path;
+        File subfolder;
+        File[] listOfsubFiles;
+
+        int totallines = 0;
+        long starttime = System.currentTimeMillis();
+        String line;
+
+
+        for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isDirectory()) {
+                String username = listOfFiles[i].getName();
+                int userid = Integer.parseInt(username);
+                int usertot = 0;
+                User user = new User(username, config, profileDuration, profileprecision);
+                index.put(username, user);
+                path = listOfFiles[i].getPath() + "/Trajectory/";
+                subfolder = new File(path);
+                listOfsubFiles = subfolder.listFiles();
+                for (int j = 0; j < listOfsubFiles.length; j++) {
+                    if (listOfsubFiles[j].isFile() && listOfsubFiles[j].getName().endsWith(".plt")) {
+
+                        try (BufferedReader br = new BufferedReader(new FileReader(listOfsubFiles[j]))) {
+                            for (int k = 0; k < 6; k++) {
+                                line = br.readLine();
+                            }
+                            while ((line = br.readLine()) != null) {
+                                double[] input = new double[5]; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+
+                                String[] substr = line.split(",");
+                                double[] latlng = new double[2];
+                                latlng[0] = Double.parseDouble(substr[0]);
+                                latlng[1] = Double.parseDouble(substr[1]);
+                                int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
+                                int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
+                                int min = calendar.get(Calendar.MINUTE);
+                                double x = Double.parseDouble(substr[4]) * 86400;
+                                long timestamp = ((long) x - 2209161600l) * 1000;
+                                usertot++;
+
+                                input[0] = userid;
+                                input[1] = day;
+                                input[2] = hour + min / 60.0;;
+                                input[3] = Double.parseDouble(substr[0]);
+                                input[4] = Double.parseDouble(substr[1]);
+                                profile.insert(input);
+
+                                user.insert(timestamp, latlng);
+                                user.learn(timestamp, latlng);
+
+                                totallines++;
+                            }
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+
+
+                    }
+                }
+                reportTime(starttime, usertot, totallines, username);
+            }
+        }
+        finalReport(starttime, totallines);
+    }
+
+
+
+    private void loadDataGoogle(NDTree profile) {
 
         File folder = new File(DATA_DIR_SEL);
         File[] listOfFiles = folder.listFiles();
         File[] listOfsubFiles;
         int totallines = 0;
         long starttime = System.currentTimeMillis();
-
+        int userId = 0;
         try {
             for (int i = 0; i < listOfFiles.length; i++) {
                 if (listOfFiles[i].isDirectory()) {
@@ -181,11 +198,24 @@ public class BackendRunner {
                                 latlng[0] = latitudeE7 / 10000000.0;
                                 latlng[1] = longitudeE7 / 10000000.0;
 
+                                double[] input = new double[5]; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+                                calendar.setTime(new Date(timestamp));
+                                int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
+                                int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
+                                int min = calendar.get(Calendar.MINUTE);
+                                input[0] = userId;
+                                input[1] = day;
+                                input[2] = hour + min / 60.0;
+                                input[3] = latitudeE7 / 10000000.0;
+                                input[4] = longitudeE7 / 10000000.0;
+
+                                profile.insert(input);
                                 user.insert(timestamp, latlng);
                                 user.learn(timestamp, latlng);
                                 usertot++;
                                 totallines++;
                             }
+                            userId++;
                             reportTime(starttime, usertot, totallines, username);
                         }
                     }
@@ -197,14 +227,7 @@ public class BackendRunner {
         }
     }
 
-    public void start() {
-
-        if (DATA_DIR_SEL.toLowerCase().contains("google")) {
-            loadDataGoogle();
-        } else {
-            loadDataChinese();
-        }
-
+    private void experiment(){
         double[] minlatlngworld = new double[]{-90, -180};              //min bound of the world
         double[] maxlatlngworld = new double[]{90, 180};                //max bound of the world
 
@@ -228,6 +251,24 @@ public class BackendRunner {
             h = h * 24;
             System.out.println(d + "," + h + "," + proba[i]);
         }
+    }
+
+    public void start() {
+
+        double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+        double[] max = new double[]{200, 7, 24, 90, 180};
+        double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
+        //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
+        int maxPerLevel = 160;
+        NDTreeConfig config = new NDTreeConfig(min, max, resolution, maxPerLevel);
+        tree = new NDTree(config);
+
+
+        if (DATA_DIR_SEL.toLowerCase().contains("google")) {
+            loadDataGoogle(tree);
+        } else {
+            loadDataChinese(tree);
+        }
 
 
         if (server == null) {
@@ -237,6 +278,7 @@ public class BackendRunner {
                             .addPrefixPath("/getPositions", getPositions)
                             .addPrefixPath("/getProfile", getProfile)
                             .addPrefixPath("/getUsers", getUsers)
+                            .addPrefixPath("/getMostImportantLocs",getMostImportantLocs)
                     )
                     .build();
         }
@@ -349,6 +391,50 @@ public class BackendRunner {
 
         }
     };
+
+
+    private HttpHandler getMostImportantLocs = new HttpHandler() {
+        @Override
+        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
+            String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
+            User user = index.get(userid); //todo to fix here
+
+            // Search request to olap
+            double[] reqmin = new double[]{0, 0, 00, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+            double[] reqmax = new double[]{0, 7, 24, 90, 180};
+
+            NDTreeResult filter = tree.filter(reqmin, reqmax);
+            System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
+            filter.sort();
+
+            //Group by
+            System.out.println("");
+            String[] groupby =new String[]{"*","*","*","0.005", "0.01"};
+            NDTreeResult grouped =filter.groupBy(groupby);
+            System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
+
+            JsonArray result = new JsonArray();
+            for(int i=0;i<grouped.getResult().size();i++){
+                JsonObject serie = new JsonObject();
+                double[] latlng = grouped.getResult().get(i).getVal();
+                double d = grouped.getResult().get(i).getTot() * 100;
+                d = d / grouped.getGlobal();
+
+                serie.add("lat", latlng[0]);
+                serie.add("lng", latlng[1]);
+                serie.add("weightInt", grouped.getResult().get(i).getTot());
+                serie.add("weightTotal", grouped.getGlobal());
+                serie.add("weight", d);
+                result.add(serie);
+            }
+            httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
+            httpServerExchange.setStatusCode(StatusCodes.OK);
+            httpServerExchange.getResponseSender().send(result.toString());
+
+        }
+    };
+
+
 
     private HttpHandler getUsers = new HttpHandler() {
         @Override

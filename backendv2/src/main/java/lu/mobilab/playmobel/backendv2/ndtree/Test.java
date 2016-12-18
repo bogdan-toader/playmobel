@@ -53,7 +53,7 @@ public class Test {
                             }
                             while ((line = br.readLine()) != null) {
                                 double[] input = new double[5]; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-                                input[0] = userid;
+
 
                                 String[] substr = line.split(",");
 
@@ -62,8 +62,10 @@ public class Test {
                                 calendar.setTime(new Date(timestamp));
                                 int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
                                 int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
+                                int min = calendar.get(Calendar.MINUTE);
+                                input[0] = userid;
                                 input[1] = day;
-                                input[2] = hour;
+                                input[2] = hour + min / 60.0;
                                 input[3] = Double.parseDouble(substr[0]);
                                 input[4] = Double.parseDouble(substr[1]);
 
@@ -130,11 +132,12 @@ public class Test {
                                 long latitudeE7 = Long.parseLong(loc.get("latitudeE7").toString());
                                 long longitudeE7 = Long.parseLong(loc.get("longitudeE7").toString());
                                 double[] input = new double[5]; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-                                input[0] = userId;
+
                                 calendar.setTime(new Date(timestamp));
                                 int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
                                 int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
                                 int min = calendar.get(Calendar.MINUTE);
+                                input[0] = userId;
                                 input[1] = day;
                                 input[2] = hour + min / 60.0;
                                 input[3] = latitudeE7 / 10000000.0;
@@ -211,7 +214,8 @@ public class Test {
 
         double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
         double[] max = new double[]{200, 7, 24, 90, 180};
-        double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
+        double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
+        //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
         int maxPerLevel = 160;
         NDTreeConfig config = new NDTreeConfig(min, max, resolution, maxPerLevel);
         NDTree tree = new NDTree(config);
@@ -244,15 +248,18 @@ public class Test {
 
 
 
-        reqmin = new double[]{0, 0, 00, 49.494902, 5.783112}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-        reqmax = new double[]{0, 7, 24, 49.877265, 6.464900};
+
+        // Search request to olap
+        reqmin = new double[]{0, 0, 00, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+        reqmax = new double[]{0, 7, 24, 90, 180};
 
         filter = tree.filter(reqmin, reqmax);
         System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
         filter.sortAndDisplay(10);
 
+        //Group by
         System.out.println("");
-        groupby =new String[]{"*","1","0.16","0.005", "0.01"};
+        groupby =new String[]{"*","*","*","0.005", "0.01"};
         grouped =filter.groupBy(groupby);
         System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
         grouped.sortAndDisplay(1000);
