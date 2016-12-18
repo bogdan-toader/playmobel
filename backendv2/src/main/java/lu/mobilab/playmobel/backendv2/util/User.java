@@ -1,5 +1,6 @@
 package lu.mobilab.playmobel.backendv2.util;
 
+import lu.mobilab.playmobel.backendv2.ndtree.NDTree;
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 import org.mwg.structure.distance.Distance;
 import org.mwg.structure.distance.Distances;
@@ -14,7 +15,9 @@ public class User {
     private TreeMap<Long, double[]> userLatLng;
     private String userId;
     private TreeMap<Long, GMMJava[]> profiles;
-    private static Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+
+    private static Calendar calendarUTC = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    private static Calendar calendar = Calendar.getInstance();
     private long profileDuration;
     private int minPrecision;
     private GMMConfig config;
@@ -31,15 +34,24 @@ public class User {
     }
 
 
-    private static int getProfileId(final long timestamp, int minPrecision) {
+    private static int getProfileId(final long timestamp, int minPrecision, boolean utc) {
         Date time = new Date(timestamp);
-        calendar.setTime(time);
+        if (utc) {
 
-        int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
-        int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
-        int min = calendar.get(Calendar.MINUTE);
-        int profileId = (((day - 1) * 24 + hour) * 60 + min) / minPrecision;
-        return profileId;
+            calendarUTC.setTime(time);
+            int day = calendarUTC.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
+            int hour = calendarUTC.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
+            int min = calendarUTC.get(Calendar.MINUTE);
+            int profileId = (((day - 1) * 24 + hour) * 60 + min) / minPrecision;
+            return profileId;
+        } else {
+            calendar.setTime(time);
+            int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
+            int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
+            int min = calendar.get(Calendar.MINUTE);
+            int profileId = (((day - 1) * 24 + hour) * 60 + min) / minPrecision;
+            return profileId;
+        }
     }
 
     private GMMJava[] createProfile() {
@@ -97,7 +109,7 @@ public class User {
 
     public void learn(final long timestamp, final double[] latlng) {
         GMMJava[] profilesArray = createorGetProfileArray(timestamp);
-        profilesArray[getProfileId(timestamp, minPrecision)].learnVector(latlng);
+        profilesArray[getProfileId(timestamp, minPrecision, true)].learnVector(latlng);
     }
 
     public void insert(final long timestamp, final double[] latlng) {
@@ -116,13 +128,13 @@ public class User {
     public ProbaDistribution getDistribution(long timestamp, int level) {
         GMMJava[] profilesArray = getProfileArray(timestamp);
         if (profilesArray != null) {
-            return profilesArray[getProfileId(timestamp, minPrecision)].generateDistributions(level);
+            return profilesArray[getProfileId(timestamp, minPrecision, true)].generateDistributions(level);
         } else {
             return null;
         }
     }
 
-    public double[] getProbaLocation(double[] latlng, double radius, int minPrecision, long startTime, long endTime) {
+    public double[] getProbaLocation(double[] latlng, double radius, double[] minlatlng, double[] maxlatlng, int minPrecision, long startTime, long endTime, boolean utc) {
         long st = System.currentTimeMillis();
         NavigableSet<Long> keyset = userLatLng.navigableKeySet().subSet(startTime, true, endTime, true);
 
@@ -133,13 +145,15 @@ public class User {
 
         //for (Long timekey : keyset) {
         for (long timekey = startTime; timekey < endTime; timekey += minPrecision * 60 * 1000) {
-            int profileId = getProfileId(timekey, minPrecision);
+            int profileId = getProfileId(timekey, minPrecision, utc);
             double[] userlatlng = userLatLng.get(userLatLng.floorKey(timekey));
-            if (distance.measure(latlng, userlatlng) <= radius) {
-                inside[profileId]++;
-                totalinside++;
+            if (NDTree.checkInside(userlatlng, minlatlng, maxlatlng)) {
+                if (distance.measure(latlng, userlatlng) <= radius) {
+                    inside[profileId]++;
+                    totalinside++;
+                }
+                total[profileId]++;
             }
-            total[profileId]++;
         }
 
         double[] proba = new double[total.length];

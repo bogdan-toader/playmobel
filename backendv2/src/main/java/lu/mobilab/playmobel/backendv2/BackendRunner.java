@@ -206,13 +206,22 @@ public class BackendRunner {
         }
 
         User assaad = index.get("assaad");
-        double[] proba = assaad.getProbaLocation(new double[]{49.632510, 6.168830}, 3000, 10, 1450369538000l, 1481991938000l);
-        double d;
+
+        double[] minlatlng = new double[]{49.494902, 5.783112};
+        double[] maxlatlng = new double[]{49.877265, 6.464900};
+
+        double[] searchWork = new double[]{49.632510, 6.168830};
+        double[] searchHome = new double[]{49.508012, 6.050853};
+
+        double[] proba = assaad.getProbaLocation(searchHome, 1000, minlatlng, maxlatlng, 5, 1450369538000l, 1481991938000l, false);
+        double d, h;
 
         System.out.println("printing assaad");
         for (int i = 0; i < proba.length; i++) {
             d = i * 7.0 / proba.length;
-            System.out.println(d + "," + proba[i]);
+            h = d - ((int) d);
+            h = h * 24;
+            System.out.println(d + "," + h + "," + proba[i]);
         }
 
 
@@ -304,13 +313,20 @@ public class BackendRunner {
             long endts = Long.parseLong(httpServerExchange.getQueryParameters().get("endts").getFirst());
             double lat = Double.parseDouble(httpServerExchange.getQueryParameters().get("lat").getFirst());
             double lng = Double.parseDouble(httpServerExchange.getQueryParameters().get("lng").getFirst());
+            double minlat = Double.parseDouble(httpServerExchange.getQueryParameters().get("minlat").getFirst());
+            double minlng = Double.parseDouble(httpServerExchange.getQueryParameters().get("minlng").getFirst());
+            double maxlat = Double.parseDouble(httpServerExchange.getQueryParameters().get("maxlat").getFirst());
+            double maxlng = Double.parseDouble(httpServerExchange.getQueryParameters().get("maxlng").getFirst());
+
             double radius = Double.parseDouble(httpServerExchange.getQueryParameters().get("radius").getFirst());
             int ts = Integer.parseInt(httpServerExchange.getQueryParameters().get("ts").getFirst());
             String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
             User user = index.get(userid);
 
             double[] latlng = new double[]{lat, lng};
-            double[] proba = user.getProbaLocation(latlng, radius, ts, startts, endts);
+            double[] minlatlng = new double[]{minlat, minlng};
+            double[] maxlatlng = new double[]{maxlat, maxlng};
+            double[] proba = user.getProbaLocation(latlng, radius, minlatlng, maxlatlng, ts, startts, endts, false);
             double d = 0;
             JsonArray result = new JsonArray();
 

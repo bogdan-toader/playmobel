@@ -193,7 +193,7 @@ public class NDTree {
         }
     }
 
-    private static boolean checkbound(double[] min, double[] max, double[] requestedmin, double[] requestedmax) {
+    public static boolean checkbound(double[] min, double[] max, double[] requestedmin, double[] requestedmax) {
         for (int i = 0; i < min.length; i++) {
             if (min[i] > requestedmax[i] || max[i] < requestedmin[i]) {
                 return false;
@@ -202,7 +202,7 @@ public class NDTree {
         return true;
     }
 
-    private static boolean checkInside(double[] val, double[] requestedmin, double[] requestedmax) {
+    public static boolean checkInside(double[] val, double[] requestedmin, double[] requestedmax) {
         for (int i = 0; i < val.length; i++) {
             if (val[i] < requestedmin[i] || val[i] > requestedmax[i]) {
                 return false;

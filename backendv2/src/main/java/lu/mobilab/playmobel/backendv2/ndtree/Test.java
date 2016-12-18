@@ -244,18 +244,18 @@ public class Test {
 
 
 
-        reqmin = new double[]{0, 0, 00, 49.622525, 6.148842}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-        reqmax = new double[]{0, 7, 24, 49.642525, 6.188842};
+        reqmin = new double[]{0, 0, 00, 49.494902, 5.783112}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+        reqmax = new double[]{0, 7, 24, 49.877265, 6.464900};
 
         filter = tree.filter(reqmin, reqmax);
         System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
         filter.sortAndDisplay(10);
 
         System.out.println("");
-        groupby =new String[]{"*","1","1","*", "*"};
+        groupby =new String[]{"*","1","0.16","0.005", "0.01"};
         grouped =filter.groupBy(groupby);
         System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
-        grouped.sortAndDisplay(grouped.getResult().size());
+        grouped.sortAndDisplay(1000);
         int x=0;
 
 
