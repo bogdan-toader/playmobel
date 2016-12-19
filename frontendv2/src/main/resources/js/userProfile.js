@@ -109,7 +109,6 @@ var UserProfile = function () {
                     selectedUser=resultJson[0];
                     var processtime = performance.now() - starttime;
                     document.getElementById('messagelbl').innerHTML = "loaded " + resultJson.length + " users in: " + parseFloat(processtime).toFixed(2) + " ms";
-                    userOrTimechange();
                 }
                 else if (xmlhttp.status == 400) {
                     alert('There was an error 400');
@@ -125,9 +124,9 @@ var UserProfile = function () {
     }
 
 
-    function addMarker(nodeID, day, hour, lat, lng, probability) {
+    function addMarker(nodeID, day, hour, lat, lng, probability, weightInt) {
         var marker = L.marker([lat, lng])
-            .bindPopup("user: "+nodeID+ ", "+day + " at " + hour + " o'clock, probability: " + Number(probability).toFixed(2) + "%");
+            .bindPopup("user: "+nodeID+ ", probability: " + Number(probability).toFixed(2) + "% , Number of occurence: "+weightInt);
         marker["node"] = nodeID;
         markers.addLayer(marker);
     }
@@ -168,7 +167,7 @@ var UserProfile = function () {
                         for (var i = 0; i < resultJson.length; i++) {
 
                             testData.data.push({lat: resultJson[i].lat, lng: resultJson[i].lng, count: resultJson[i].weightInt});
-                            addMarker(selectedUser, day, hour, resultJson[i].lat, resultJson[i].lng, resultJson[i].weight);
+                            addMarker(selectedUser, day, hour, resultJson[i].lat, resultJson[i].lng, resultJson[i].weight, resultJson[i].weightInt);
 
                             if (resultJson[i].weightInt > maxPoint) {
                                 maxPoint = resultJson[i].weightInt ;
@@ -197,7 +196,8 @@ var UserProfile = function () {
                     }
                 }
             };
-            var params = "timestamp=" + timestamp + "&userid=" + selectedUser;
+
+            var params = "timestamp=" + timestamp + "&userid=" + selectedUser+"&mostvisited="+document.getElementById("mostvisited").value;
             xmlhttp.open("GET", "http://" + window.location.hostname + ":8081/getMostImportantLocs?"+ encodeURI(params), true);
             xmlhttp.send();
         }

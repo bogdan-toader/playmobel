@@ -141,7 +141,8 @@ public class BackendRunner {
 
                                 input[0] = userid;
                                 input[1] = day;
-                                input[2] = hour + min / 60.0;;
+                                input[2] = hour + min / 60.0;
+                                ;
                                 input[3] = Double.parseDouble(substr[0]);
                                 input[4] = Double.parseDouble(substr[1]);
                                 profile.insert(input);
@@ -163,7 +164,6 @@ public class BackendRunner {
         }
         finalReport(starttime, totallines);
     }
-
 
 
     private void loadDataGoogle(NDTree profile) {
@@ -227,7 +227,7 @@ public class BackendRunner {
         }
     }
 
-    private void experiment(){
+    private void experiment() {
         double[] minlatlngworld = new double[]{-90, -180};              //min bound of the world
         double[] maxlatlngworld = new double[]{90, 180};                //max bound of the world
 
@@ -236,9 +236,9 @@ public class BackendRunner {
 
         double[] searchWork = new double[]{49.632510, 6.168830};        //work
         double[] searchHome = new double[]{49.508012, 6.050853};        //home
-        double[] searchGarnich=  new double[]{49.621166, 5.935100};     //observation
+        double[] searchGarnich = new double[]{49.621166, 5.935100};     //observation
 
-        int minPrecision =5; //Search every 5 minutes of the full week
+        int minPrecision = 5; //Search every 5 minutes of the full week
         double[] proba = index.get("assaad").getProbaLocation(searchGarnich, 1000, minlatlng, maxlatlng, minPrecision, 1450369538000l, 1481991938000l, false);
         //you get: decimal day, decimal hour, probability in %
 
@@ -278,7 +278,7 @@ public class BackendRunner {
                             .addPrefixPath("/getPositions", getPositions)
                             .addPrefixPath("/getProfile", getProfile)
                             .addPrefixPath("/getUsers", getUsers)
-                            .addPrefixPath("/getMostImportantLocs",getMostImportantLocs)
+                            .addPrefixPath("/getMostImportantLocs", getMostImportantLocs)
                     )
                     .build();
         }
@@ -397,6 +397,7 @@ public class BackendRunner {
         @Override
         public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
             String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
+            int mostVisited = Integer.parseInt(httpServerExchange.getQueryParameters().get("mostvisited").getFirst());
             User user = index.get(userid); //todo to fix here
 
             // Search request to olap
@@ -409,12 +410,14 @@ public class BackendRunner {
 
             //Group by
             System.out.println("");
-            String[] groupby =new String[]{"*","*","*","0.005", "0.01"};
-            NDTreeResult grouped =filter.groupBy(groupby);
+            String[] groupby = new String[]{"*", "*", "*", "-", "-"};
+            NDTreeResult grouped = filter.groupBy(groupby).sort();
             System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
 
             JsonArray result = new JsonArray();
-            for(int i=0;i<grouped.getResult().size();i++){
+
+            int min = Math.min(mostVisited, grouped.getResult().size());
+            for (int i = 0; i < min; i++) {
                 JsonObject serie = new JsonObject();
                 double[] latlng = grouped.getResult().get(i).getVal();
                 double d = grouped.getResult().get(i).getTot() * 100;
@@ -433,7 +436,6 @@ public class BackendRunner {
 
         }
     };
-
 
 
     private HttpHandler getUsers = new HttpHandler() {

@@ -1,5 +1,7 @@
 package lu.mobilab.playmobel.backendv2.ndtree;
 
+import org.mwg.structure.util.NDResult;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -56,16 +58,17 @@ public class NDTreeResult {
         return global;
     }
 
-    public void sort() {
+    public NDTreeResult sort() {
         res.sort(new Comparator<AtomicRes>() {
             @Override
             public int compare(AtomicRes o1, AtomicRes o2) {
                 return Integer.compare(o2.getTot(), o1.getTot());
             }
         });
+        return this;
     }
 
-    public void sortAndDisplay(int num) {
+    public NDTreeResult sortAndDisplay(int num) {
         sort();
         int disp = Math.min(num, res.size());
 
@@ -74,6 +77,7 @@ public class NDTreeResult {
         }
         System.out.println("Result profile:");
         profile.print();
+        return this;
     }
 
 
@@ -119,6 +123,7 @@ public class NDTreeResult {
                 newresStr[c] = groupby[i];
                 if (groupby[i].equals("-")) {
                     newresolution[c] = resolution[i];
+                    newresStr[c]= String.valueOf(newresolution[c]);
                 } else {
                     newresolution[c] = Double.parseDouble(groupby[i]);
                 }
