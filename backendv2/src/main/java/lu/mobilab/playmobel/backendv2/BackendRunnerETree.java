@@ -16,13 +16,21 @@ import lu.mobilab.playmobel.backendv2.util.GMMConfig;
 import lu.mobilab.playmobel.backendv2.util.LatLngObj;
 import lu.mobilab.playmobel.backendv2.util.User;
 import org.json.JSONObject;
+import org.mwg.Callback;
+import org.mwg.Graph;
+import org.mwg.GraphBuilder;
+import org.mwg.Type;
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
+import org.mwg.structure.StructurePlugin;
+import org.mwg.structure.tree.ETree;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.text.DecimalFormat;
 import java.util.*;
 
-public class BackendRunner {
+public class BackendRunnerETree {
 
 
     public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
@@ -96,7 +104,7 @@ public class BackendRunner {
     }
 
 
-    private void loadDataChinese(NDTree profile) {
+    private void loadDataChinese(ETree profile) {
         File folder = new File(DATA_DIR_SEL);
         File[] listOfFiles = folder.listFiles();
         String path;
@@ -142,10 +150,10 @@ public class BackendRunner {
                                 input[0] = userid;
                                 input[1] = day;
                                 input[2] = hour + min / 60.0;
-                                ;
+
                                 input[3] = Double.parseDouble(substr[0]);
                                 input[4] = Double.parseDouble(substr[1]);
-                                profile.insert(input);
+                                profile.insertWith(input, null, null);
 
                                 user.insert(timestamp, latlng);
                                 user.learn(timestamp, latlng);
@@ -255,35 +263,52 @@ public class BackendRunner {
 
     public void start() {
 
-        double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-        double[] max = new double[]{200, 7, 24, 90, 180};
-        double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
+        final double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+        final double[] max = new double[]{200, 7, 24, 90, 180};
+        final double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
         //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
         int maxPerLevel = 0;
-        NDTreeConfig config = new NDTreeConfig(min, max, resolution, maxPerLevel);
-        tree = new NDTree(config);
+
+        Graph graph = GraphBuilder.newBuilder()
+                .withPlugin(new StructurePlugin())
+                .build();
+
+        graph.connect(new Callback<Boolean>() {
+            @Override
+            public void on(Boolean result) {
+                ETree tree=(ETree) graph.newTypedNode(0,0,ETree.NAME);
+                tree.set(ETree.BOUND_MIN, Type.DOUBLE_ARRAY, min);
+                tree.set(ETree.BOUND_MAX, Type.DOUBLE_ARRAY, max);
+                tree.set(ETree.RESOLUTION, Type.DOUBLE_ARRAY, resolution);
+                tree.set(ETree.BUFFER_SIZE,Type.INT,maxPerLevel);
 
 
-        if (DATA_DIR_SEL.toLowerCase().contains("google")) {
-            loadDataGoogle(tree);
-        } else {
-            loadDataChinese(tree);
-        }
-        tree.print();
+                if (DATA_DIR_SEL.toLowerCase().contains("google")) {
+
+                } else {
+                    loadDataChinese(tree);
+                }
+                System.out.println(ETree.counter);
+
+                if (server == null) {
+                    server = Undertow.builder()
+                            .addHttpListener(8081, "0.0.0.0")
+                            .setHandler(Handlers.path()
+                                    .addPrefixPath("/getPositions", getPositions)
+                                    .addPrefixPath("/getProfile", getProfile)
+                                    .addPrefixPath("/getUsers", getUsers)
+                                    .addPrefixPath("/getMostImportantLocs", getMostImportantLocs)
+                            )
+                            .build();
+                }
+                server.start();
 
 
-        if (server == null) {
-            server = Undertow.builder()
-                    .addHttpListener(8081, "0.0.0.0")
-                    .setHandler(Handlers.path()
-                            .addPrefixPath("/getPositions", getPositions)
-                            .addPrefixPath("/getProfile", getProfile)
-                            .addPrefixPath("/getUsers", getUsers)
-                            .addPrefixPath("/getMostImportantLocs", getMostImportantLocs)
-                    )
-                    .build();
-        }
-        server.start();
+            }
+        });
+
+
+
     }
 
 
@@ -458,7 +483,7 @@ public class BackendRunner {
     };
 
     public static void main(String[] args) {
-        BackendRunner runner = new BackendRunner();
+        BackendRunnerETree runner = new BackendRunnerETree();
         runner.start();
     }
 

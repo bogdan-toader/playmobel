@@ -23,6 +23,11 @@
         </dependency>
         <dependency>
             <groupId>org.kevoree.mwg.plugins</groupId>
+            <artifactId>structure</artifactId>
+            <version>${mwg.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kevoree.mwg.plugins</groupId>
             <artifactId>leveldb</artifactId>
             <version>${mwg.version}</version>
         </dependency>
