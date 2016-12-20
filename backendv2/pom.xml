@@ -56,11 +56,6 @@
             <artifactId>json</artifactId>
             <version>20160212</version>
         </dependency>
-        <dependency>
-            <groupId>io.github.s0cks</groupId>
-            <artifactId>rapidjson</artifactId>
-            <version>1.1.1.0</version>
-        </dependency>
         <!-- Test -->
 
 
