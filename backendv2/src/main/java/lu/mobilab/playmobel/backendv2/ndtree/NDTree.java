@@ -1,12 +1,16 @@
 package lu.mobilab.playmobel.backendv2.ndtree;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class NDTree {
+
+    //private NDTree[] _subchildren;
+    private HashMap<Integer, NDTree> _subchildrenhash;
+
     private double[] _min;
     private double[] _max;
     private int _total = 0;
-    private NDTree[] _subchildren;
     private ArrayList<double[]> _tempValues;
     private GaussianProfile lowlevel;
     private NDTreeConfig _config;
@@ -47,7 +51,7 @@ public class NDTree {
         for (int i = 0; i < _min.length; i++) {
             if (values[i] < _min[i] || values[i] > _max[i]) {
                 throw new RuntimeException("Values should be between min, max, " + GaussianProfile.printArray("ERROR", values)
-                        +" "+GaussianProfile.printArray("MIN",_min)+" "+GaussianProfile.printArray("MAX",_max));
+                        + " " + GaussianProfile.printArray("MIN", _min) + " " + GaussianProfile.printArray("MAX", _max));
             }
         }
     }
@@ -99,10 +103,19 @@ public class NDTree {
 
     private static void subInsert(final NDTree from, final double[] values, final double[] min, final double[] max, final double[] center, final double[] resolution, final int maxPerLevel, final int lev, final NDTree root) {
         int index = getRelationId(center, values);
-        if (from._subchildren[index] == null) {
-            from._subchildren[index] = new NDTree(min, max, center, values, root._config);
+        //NDTree child=from._subchildren[index];
+        NDTree child = from._subchildrenhash.get(index);
+
+//        if(child!=child2){
+//            throw new RuntimeException("map and hash not the same");
+//        }
+
+        if (child == null) {
+            child = new NDTree(min, max, center, values, root._config);
+            //from._subchildren[index]=child;
+            from._subchildrenhash.put(index, child);
         }
-        from._subchildren[index].internalInsert(values, from._subchildren[index]._min, from._subchildren[index]._max, from._subchildren[index].getCenter(), resolution, maxPerLevel, lev + 1, root);
+        child.internalInsert(values, child._min, child._max, child.getCenter(), resolution, maxPerLevel, lev + 1, root);
     }
 
     private void internalInsert(final double[] values, final double[] min, final double[] max, final double[] center, final double[] resolution, final int maxPerLevel, final int lev, final NDTree root) {
@@ -111,7 +124,7 @@ public class NDTree {
             root._config.incJumpCounter();
         }
 
-        if (_subchildren != null) {
+        if (_subchildrenhash != null) {
             subInsert(this, values, min, max, center, resolution, maxPerLevel, lev, root);
         } else if (checkCreateLevels(min, max, resolution)) {
             if (_tempValues != null) {
@@ -119,7 +132,8 @@ public class NDTree {
                     _tempValues.add(values);
                 } else {
                     // check if we can create subchildren
-                    _subchildren = new NDTree[getChildren(min.length)];
+                    //_subchildren = new NDTree[getChildren(min.length)];
+                    _subchildrenhash = new HashMap<>();
                     for (double[] _tempValue : _tempValues) {
                         subInsert(this, _tempValue, min, max, center, resolution, maxPerLevel, lev, root);
                     }
@@ -127,7 +141,8 @@ public class NDTree {
                     _tempValues = null;
                 }
             } else {
-                _subchildren = new NDTree[getChildren(min.length)];
+                //_subchildren = new NDTree[getChildren(min.length)];
+                _subchildrenhash = new HashMap<>();
                 subInsert(this, values, min, max, center, resolution, maxPerLevel, lev, root);
             }
         }
@@ -156,24 +171,24 @@ public class NDTree {
         if (checkbound(_min, _max, min, max)) {
             internalFilter(min, max, result);
         }
-        reportTime("filtered ",ts);
+        reportTime("filtered ", ts);
         return result;
     }
 
     //todo move to util
-    public static void reportTime(String label,long ts){
+    public static void reportTime(String label, long ts) {
         long te = System.nanoTime() - ts;
         if (te < 1000000) {
-            System.out.println(label+" in: " + te + " ns!");
+            System.out.println(label + " in: " + te + " ns!");
         } else {
             te = te / 1000000;
-            System.out.println(label+" in: " + te + " ms!");
+            System.out.println(label + " in: " + te + " ms!");
         }
     }
 
 
     private void internalFilter(final double[] requestedmin, final double[] requestedmax, final NDTreeResult result) {
-        if (_subchildren == null) {
+        if (_subchildrenhash == null) {
             if (_tempValues != null) {
                 for (double[] val : _tempValues) {
                     if (checkInside(val, requestedmin, requestedmax)) {
@@ -184,7 +199,7 @@ public class NDTree {
                 result.add(lowlevel.getAvg(), _total);
             }
         } else {
-            for (NDTree subt : _subchildren) {
+            for (NDTree subt : _subchildrenhash.values()) {
                 if (subt != null && checkbound(subt._min, subt._max, requestedmin, requestedmax)) {
                     subt.internalFilter(requestedmin, requestedmax, result);
                 }

@@ -10,7 +10,6 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HttpString;
 import io.undertow.util.StatusCodes;
 import lu.mobilab.playmobel.backendv2.ndtree.NDTree;
-import lu.mobilab.playmobel.backendv2.ndtree.NDTreeConfig;
 import lu.mobilab.playmobel.backendv2.ndtree.NDTreeResult;
 import lu.mobilab.playmobel.backendv2.util.GMMConfig;
 import lu.mobilab.playmobel.backendv2.util.LatLngObj;
@@ -153,7 +152,7 @@ public class BackendRunnerETree {
 
                                 input[3] = Double.parseDouble(substr[0]);
                                 input[4] = Double.parseDouble(substr[1]);
-                                profile.insertWith(input, null, null);
+                                profile.profile(input,1);
 
                                 user.insert(timestamp, latlng);
                                 user.learn(timestamp, latlng);
@@ -262,10 +261,9 @@ public class BackendRunnerETree {
     }
 
     public void start() {
-
-        final double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-        final double[] max = new double[]{200, 7, 24, 90, 180};
-        final double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
+        double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+        double[] max = new double[]{200, 7, 24, 90, 180};
+        double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
         //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
         int maxPerLevel = 0;
 
@@ -277,10 +275,11 @@ public class BackendRunnerETree {
             @Override
             public void on(Boolean result) {
                 ETree tree=(ETree) graph.newTypedNode(0,0,ETree.NAME);
-                tree.set(ETree.BOUND_MIN, Type.DOUBLE_ARRAY, min);
-                tree.set(ETree.BOUND_MAX, Type.DOUBLE_ARRAY, max);
-                tree.set(ETree.RESOLUTION, Type.DOUBLE_ARRAY, resolution);
-                tree.set(ETree.BUFFER_SIZE,Type.INT,maxPerLevel);
+                tree.setAt(ETree.BOUND_MIN, Type.DOUBLE_ARRAY, min);
+                tree.setAt(ETree.BOUND_MAX, Type.DOUBLE_ARRAY, max);
+                tree.setAt(ETree.RESOLUTION, Type.DOUBLE_ARRAY, resolution);
+                tree.setAt(ETree.BUFFER_SIZE,Type.INT,maxPerLevel);
+
 
 
                 if (DATA_DIR_SEL.toLowerCase().contains("google")) {
@@ -288,7 +287,9 @@ public class BackendRunnerETree {
                 } else {
                     loadDataChinese(tree);
                 }
-                System.out.println(ETree.counter);
+
+                System.out.println("tree size:"+tree.size());
+                System.out.println("tree subnodes:"+tree.numberOfNodes());
 
                 if (server == null) {
                     server = Undertow.builder()

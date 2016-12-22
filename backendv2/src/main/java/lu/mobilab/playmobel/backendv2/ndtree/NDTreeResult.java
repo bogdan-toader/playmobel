@@ -1,6 +1,5 @@
 package lu.mobilab.playmobel.backendv2.ndtree;
 
-import org.mwg.structure.util.NDResult;
 
 import java.util.ArrayList;
 import java.util.Comparator;
