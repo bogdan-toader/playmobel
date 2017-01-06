@@ -1,9 +1,9 @@
 package lu.mobilab.playmobel.backendv2.util;
 
 import org.mwg.ml.algorithm.profiling.ProbaDistribution;
-import org.mwg.ml.common.matrix.VolatileMatrix;
+import org.mwg.ml.common.matrix.VolatileDMatrix;
 import org.mwg.ml.common.matrix.operation.MultivariateNormalDistribution;
-import org.mwg.struct.Matrix;
+import org.mwg.struct.DMatrix;
 
 import java.util.ArrayList;
 
@@ -382,7 +382,7 @@ public class GMMJava {
         }
 
 
-        Matrix covBackup = VolatileMatrix.empty(dim,dim);
+        DMatrix covBackup = VolatileDMatrix.empty(dim,dim);
         for (int i = 0; i < dim; i++) {
             covBackup.set(i, i, err[i]);
         }
@@ -411,7 +411,7 @@ public class GMMJava {
 
     }
 
-    private Matrix getCovariance(double[] avg, double[] err) {
+    private DMatrix getCovariance(double[] avg, double[] err) {
         int features = avg.length;
 
         if (total == 0) {
@@ -437,7 +437,7 @@ public class GMMJava {
                     }
                 }
             }
-            return VolatileMatrix.wrap(covariances, features, features);
+            return VolatileDMatrix.wrap(covariances, features, features);
         } else {
             return null;
         }

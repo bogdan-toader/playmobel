@@ -1,7 +1,8 @@
 package lu.mobilab.playmobel.backendv2.ndtree;
 
-import org.mwg.ml.common.matrix.VolatileMatrix;
-import org.mwg.struct.Matrix;
+
+import org.mwg.ml.common.matrix.VolatileDMatrix;
+import org.mwg.struct.DMatrix;
 
 /**
  * Created by assaad on 21/10/2016.
@@ -50,7 +51,7 @@ public class GaussianProfile {
         }
     }
 
-    public Matrix getCovariance(double[] avg) {
+    public DMatrix getCovariance(double[] avg) {
         int features = avg.length;
 
         if (total == 0) {
@@ -70,7 +71,7 @@ public class GaussianProfile {
                     count++;
                 }
             }
-            return VolatileMatrix.wrap(covariances, features, features);
+            return VolatileDMatrix.wrap(covariances, features, features);
         } else {
             return null;
         }
@@ -172,7 +173,7 @@ public class GaussianProfile {
     }
 
     public double[] getSigma(double[] avg) {
-        Matrix cov = getCovariance(avg);
+        DMatrix cov = getCovariance(avg);
         double[] res = new double[avg.length];
         for (int i = 0; i < res.length; i++) {
             res[i] = Math.sqrt(cov.get(i, i));

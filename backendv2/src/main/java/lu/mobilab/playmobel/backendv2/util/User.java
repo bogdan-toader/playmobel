@@ -14,6 +14,7 @@ import java.util.*;
 public class User {
     private TreeMap<Long, double[]> userLatLng;
     private String userId;
+    private int uid;
     private TreeMap<Long, GMMJava[]> profiles;
 
     private static Calendar calendarUTC = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
@@ -175,5 +176,13 @@ public class User {
 
     public String getUserId() {
         return userId;
+    }
+
+    public int getUid() {
+        return uid;
+    }
+
+    public void setUid(int uid) {
+        this.uid = uid;
     }
 }

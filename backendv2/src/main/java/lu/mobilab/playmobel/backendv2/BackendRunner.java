@@ -28,7 +28,7 @@ public class BackendRunner {
     public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
     public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
     public final static String DATA_GOOGLE = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/google/";
-    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
+    public final static String DATA_DIR_SEL = DATA_DIR;
 
 
 //    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
@@ -180,6 +180,7 @@ public class BackendRunner {
                     String username = listOfFiles[i].getName();
                     listOfsubFiles = listOfFiles[i].listFiles();
                     User user = new User(username, config, profileDuration, profileprecision);
+                    user.setUid(userId);
                     index.put(username, user);
 
                     for (int j = 0; j < listOfsubFiles.length; j++) {
@@ -259,7 +260,7 @@ public class BackendRunner {
         double[] max = new double[]{200, 7, 24, 90, 180};
         double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
         //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
-        int maxPerLevel = 0;
+        int maxPerLevel = 512;
         NDTreeConfig config = new NDTreeConfig(min, max, resolution, maxPerLevel);
         tree = new NDTree(config);
 
@@ -402,8 +403,9 @@ public class BackendRunner {
             User user = index.get(userid); //todo to fix here
 
             // Search request to olap
-            double[] reqmin = new double[]{0, 0, 00, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-            double[] reqmax = new double[]{0, 7, 24, 90, 180};
+
+            double[] reqmin = new double[]{user.getUid(), 0, 00, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+            double[] reqmax = new double[]{user.getUid(), 7, 24, 90, 180};
 
             NDTreeResult filter = tree.filter(reqmin, reqmax);
             System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");

@@ -35,7 +35,7 @@ public class BackendRunnerETree {
     public final static String DATA_DIR = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/Data/";
     public final static String DATA_DIR_TEST = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/DataTest/";
     public final static String DATA_GOOGLE = "/Users/assaad/Desktop/kluster/Geolife Trajectories 1.3/google/";
-    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
+    public final static String DATA_DIR_SEL = DATA_DIR;
 
 
 //    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
@@ -154,8 +154,8 @@ public class BackendRunnerETree {
                                 input[4] = Double.parseDouble(substr[1]);
                                 profile.profile(input,1);
 
-                                user.insert(timestamp, latlng);
-                                user.learn(timestamp, latlng);
+                               // user.insert(timestamp, latlng);
+                                // user.learn(timestamp, latlng);
 
                                 totallines++;
                             }
@@ -265,7 +265,7 @@ public class BackendRunnerETree {
         double[] max = new double[]{200, 7, 24, 90, 180};
         double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
         //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
-        int maxPerLevel = 0;
+        int maxPerLevel = 16;
 
         Graph graph = GraphBuilder.newBuilder()
                 .withPlugin(new StructurePlugin())
