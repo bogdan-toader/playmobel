@@ -56,7 +56,7 @@
             <artifactId>json</artifactId>
             <version>20160212</version>
         </dependency>
-        <!-- Test -->
+        <!-- Test open activity monitor and kill all java apps -->
 
 
     </dependencies>

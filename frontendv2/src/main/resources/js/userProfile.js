@@ -133,11 +133,12 @@ var UserProfile = function () {
     }
 
 
-    //When the drop down is changed we call this
+    //
     function dropDownChange() {
         var dropownlist = document.getElementById("userDropDown");
         if (dropownlist.options[dropownlist.selectedIndex].text != null) {
             selectedUser = dropownlist.options[dropownlist.selectedIndex].text;
+
             userOrTimechange();
         }
         else {
@@ -197,6 +198,7 @@ var UserProfile = function () {
                     }
                 }
             };
+            //on JS this is how you pass parameters
             var params = "timestamp=" + timestamp + "&userid=" + selectedUser;
             xmlhttp.open("GET", "http://" + window.location.hostname + ":8081/getMostImportantLocs?"+ encodeURI(params), true);
             xmlhttp.send();

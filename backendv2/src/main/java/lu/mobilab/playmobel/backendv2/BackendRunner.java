@@ -47,7 +47,8 @@ public class BackendRunner {
     private final int profileprecision = 60;
     private String[] usernames;
     private static Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-
+    private final HashMap<String, Integer> indexIDS=new HashMap<>(); //this line of code is wasted once we switch back to kmf.
+    //one more time, don't give a fuck on wasting time on stuff that i will recode .
     private Undertow server;
     private NDTree tree;
 
@@ -181,6 +182,7 @@ public class BackendRunner {
                     listOfsubFiles = listOfFiles[i].listFiles();
                     User user = new User(username, config, profileDuration, profileprecision);
                     index.put(username, user);
+                    indexIDS.put(username,userId);
 
                     for (int j = 0; j < listOfsubFiles.length; j++) {
                         if (listOfsubFiles[j].isFile() && listOfsubFiles[j].getName().endsWith(".json")) {
@@ -215,6 +217,7 @@ public class BackendRunner {
                                 usertot++;
                                 totallines++;
                             }
+
                             userId++;
                             reportTime(starttime, usertot, totallines, username);
                         }
@@ -396,12 +399,28 @@ public class BackendRunner {
     private HttpHandler getMostImportantLocs = new HttpHandler() {
         @Override
         public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
+            //basically here you use query parameters to get parameters from js
             String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
-            User user = index.get(userid); //todo to fix here
+            int id =   indexIDS.get(userid); //todo to fix here //here i left a todo
+
+            //actually i get the user from the user id,
+            //but i don't use it anywhere
+            //mainly because i use a different profile
+            // to fix this:
 
             // Search request to olap
-            double[] reqmin = new double[]{0, 0, 00, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-            double[] reqmax = new double[]{0, 7, 24, 90, 180};
+
+            //here look at this. on the request, I HARDCODE the value.
+            //first dimension is user id, second day, third hour, 4th lat, 5th long.
+            //just to test,
+            //every modification here is wasted
+            //once we integrate back in kmf
+            //so here is your fix:
+
+            //this fix the user id, BUT DOOESNOT FIX the selected days, or hours, or gpsmin gpsmax search they are still HARDCODED
+            //you can replace here if you want the min day, max day, min hour max hour, min gps etc
+            double[] reqmin = new double[]{id, 0, 00, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+            double[] reqmax = new double[]{id, 7, 24, 90, 180};
 
             NDTreeResult filter = tree.filter(reqmin, reqmax);
             System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
@@ -409,6 +428,8 @@ public class BackendRunner {
 
             //Group by
             System.out.println("");
+            //and here you can fix the precision, basically all fixing here will be wasted
+            //once integrated in kmg, we are still searching for a better querry language.
             String[] groupby =new String[]{"*","*","*","0.005", "0.01"};
             NDTreeResult grouped =filter.groupBy(groupby);
             System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
@@ -429,6 +450,7 @@ public class BackendRunner {
             }
             httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
             httpServerExchange.setStatusCode(StatusCodes.OK);
+            //and you send the results back as response
             httpServerExchange.getResponseSender().send(result.toString());
 
         }
