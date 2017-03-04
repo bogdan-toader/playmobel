@@ -1,10 +1,8 @@
 package lu.mobilab.playmobel.backendv2.util;
 
+import greycat.utility.distance.Distance;
+import greycat.utility.distance.GeoDistance;
 import lu.mobilab.playmobel.backendv2.ndtree.NDTree;
-import org.mwg.ml.algorithm.profiling.ProbaDistribution;
-import org.mwg.structure.distance.Distance;
-import org.mwg.structure.distance.Distances;
-import org.mwg.structure.distance.GeoDistance;
 
 import java.util.*;
 
@@ -125,14 +123,6 @@ public class User {
         }
     }
 
-    public ProbaDistribution getDistribution(long timestamp, int level) {
-        GMMJava[] profilesArray = getProfileArray(timestamp);
-        if (profilesArray != null) {
-            return profilesArray[getProfileId(timestamp, minPrecision, true)].generateDistributions(level);
-        } else {
-            return null;
-        }
-    }
 
     public double[] getProbaLocation(double[] latlng, double radius, double[] minlatlng, double[] maxlatlng, int minPrecision, long startTime, long endTime, boolean utc) {
         long st = System.currentTimeMillis();

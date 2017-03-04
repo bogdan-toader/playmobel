@@ -13,8 +13,6 @@
     </properties>
 
     <modules>
-        <module>backend</module>
-        <module>frontend</module>
         <module>backendv2</module>
         <module>frontendv2</module>
     </modules>

@@ -1,9 +1,6 @@
 package lu.mobilab.playmobel.backendv2.util;
 
-import org.mwg.ml.algorithm.profiling.ProbaDistribution;
-import org.mwg.ml.common.matrix.VolatileMatrix;
-import org.mwg.ml.common.matrix.operation.MultivariateNormalDistribution;
-import org.mwg.struct.Matrix;
+
 
 import java.util.ArrayList;
 
@@ -340,107 +337,6 @@ public class GMMJava {
 
 
         return result;
-    }
-
-
-    public ProbaDistribution generateDistributions(int reqlevel) {
-
-        if (sum == null || sum.length==0) {
-            return null;
-        }
-        final int dim = sum.length;
-        final double[] err = rootconfig.resolution;
-
-        ArrayList<GMMJava> current = new ArrayList<>();
-
-
-
-        current.add(this);
-
-        ArrayList<GMMJava> keep = new ArrayList<>();
-        for (int k = 0; k < this.level - reqlevel; k++) {
-            ArrayList<GMMJava> traverse = new ArrayList<>();
-            for (int i = 0; i < current.size(); i++) {
-                if (current.get(i).subGaussians != null && current.get(i).subGaussians.size() > 0) {
-                    for (int j = 0; j < current.get(i).subGaussians.size(); j++) {
-                        traverse.add(current.get(i).subGaussians.get(j));
-                    }
-                } else {
-                    keep.add(current.get(i));
-                }
-            }
-            current = traverse;
-            if (current.size() == 0) {
-                break;
-            }
-        }
-
-        if(current.size()>0){
-            for(int i=0;i<current.size();i++){
-                keep.add(current.get(i));
-            }
-        }
-
-
-        Matrix covBackup = VolatileMatrix.empty(dim,dim);
-        for (int i = 0; i < dim; i++) {
-            covBackup.set(i, i, err[i]);
-        }
-
-        MultivariateNormalDistribution mvnBackup = new MultivariateNormalDistribution(null, covBackup, false);
-
-        int[] totals = new int[keep.size()];
-        int globalTotal = 0;
-
-        MultivariateNormalDistribution[] distributions = new MultivariateNormalDistribution[keep.size()];
-        for (int i = 0; i < keep.size(); i++) {
-            GMMJava temp = keep.get(i);
-            totals[i] = temp.total;
-            globalTotal += totals[i];
-            double[] avg = temp.getAvg();
-            if (totals[i] > 2) {
-                distributions[i] = new MultivariateNormalDistribution(avg, temp.getCovariance(avg, err), false);
-                distributions[i].setMin(temp.getMin());
-                distributions[i].setMax(temp.getMax());
-            } else {
-                distributions[i] = mvnBackup.clone(avg); //this can be optimized later by inverting covBackup only once
-            }
-        }
-        return new ProbaDistribution(totals, distributions, globalTotal);
-
-
-    }
-
-    private Matrix getCovariance(double[] avg, double[] err) {
-        int features = avg.length;
-
-        if (total == 0) {
-            return null;
-        }
-        if (err == null) {
-            err = new double[avg.length];
-        }
-        if (total > 1) {
-            double[] covariances = new double[features * features];
-
-            double correction = total;
-            correction = correction / (total - 1);
-
-            int count = 0;
-            for (int i = 0; i < features; i++) {
-                for (int j = i; j < features; j++) {
-                    covariances[i * features + j] = (sumsq[count] / total - avg[i] * avg[j]) * correction;
-                    covariances[j * features + i] = covariances[i * features + j];
-                    count++;
-                    if (covariances[i * features + i] < err[i]) {
-                        covariances[i * features + i] = err[i];
-                    }
-                }
-            }
-            return VolatileMatrix.wrap(covariances, features, features);
-        } else {
-            return null;
-        }
     }
 
 

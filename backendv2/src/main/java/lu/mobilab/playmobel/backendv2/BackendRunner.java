@@ -16,7 +16,6 @@ import lu.mobilab.playmobel.backendv2.util.GMMConfig;
 import lu.mobilab.playmobel.backendv2.util.LatLngObj;
 import lu.mobilab.playmobel.backendv2.util.User;
 import org.json.JSONObject;
-import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 
 import java.io.*;
 import java.text.DecimalFormat;
@@ -31,10 +30,10 @@ public class BackendRunner {
 //    public final static String DATA_DIR_SEL = DATA_GOOGLE;
 
 
-//    public final static String DATA_DIR = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
-//    public final static String DATA_DIR_TEST = "/Users/bogdan.toader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
-    public final static String DATA_GOOGLE = "/Users/bogdan.toader/Documents/Datasets/google/";
-    public final static String DATA_DIR_SEL = DATA_GOOGLE;
+    public final static String DATA_DIR = "/Users/bogdantoader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/bogdantoader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_GOOGLE = "/Users/bogdantoader/Documents/Datasets/google/";
+    public final static String DATA_DIR_SEL = DATA_DIR;
 
 
     private static final DecimalFormat df = new DecimalFormat("###,###.#");
@@ -47,8 +46,7 @@ public class BackendRunner {
     private final int profileprecision = 60;
     private String[] usernames;
     private static Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-    private final HashMap<String, Integer> indexIDS=new HashMap<>(); //this line of code is wasted once we switch back to kmf.
-    //one more time, don't give a fuck on wasting time on stuff that i will recode .
+
     private Undertow server;
     private NDTree tree;
 
@@ -133,11 +131,14 @@ public class BackendRunner {
                                 double[] latlng = new double[2];
                                 latlng[0] = Double.parseDouble(substr[0]);
                                 latlng[1] = Double.parseDouble(substr[1]);
+
+                                double x = Double.parseDouble(substr[4]) * 86400;
+                                long timestamp = ((long) x - 2209161600l) * 1000;
+
+                                calendar.setTime(new Date(timestamp));
                                 int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
                                 int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
                                 int min = calendar.get(Calendar.MINUTE);
-                                double x = Double.parseDouble(substr[4]) * 86400;
-                                long timestamp = ((long) x - 2209161600l) * 1000;
                                 usertot++;
 
                                 input[0] = userid;
@@ -182,7 +183,6 @@ public class BackendRunner {
                     listOfsubFiles = listOfFiles[i].listFiles();
                     User user = new User(username, config, profileDuration, profileprecision);
                     index.put(username, user);
-                    indexIDS.put(username,userId);
 
                     for (int j = 0; j < listOfsubFiles.length; j++) {
                         if (listOfsubFiles[j].isFile() && listOfsubFiles[j].getName().endsWith(".json")) {
@@ -217,7 +217,6 @@ public class BackendRunner {
                                 usertot++;
                                 totallines++;
                             }
-
                             userId++;
                             reportTime(starttime, usertot, totallines, username);
                         }
@@ -279,7 +278,7 @@ public class BackendRunner {
                     .addHttpListener(8081, "0.0.0.0")
                     .setHandler(Handlers.path()
                             .addPrefixPath("/getPositions", getPositions)
-                            .addPrefixPath("/getProfile", getProfile)
+                           // .addPrefixPath("/getProfile", getProfile)
                             .addPrefixPath("/getUsers", getUsers)
                             .addPrefixPath("/getMostImportantLocs",getMostImportantLocs)
                     )
@@ -317,43 +316,43 @@ public class BackendRunner {
         }
     };
 
-    private HttpHandler getProfile = new HttpHandler() {
-        @Override
-        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
-            long timestamp = Long.parseLong(httpServerExchange.getQueryParameters().get("timestamp").getFirst());
-            String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
-            User user = index.get(userid);
-            ProbaDistribution proba = user.getDistribution(timestamp, 0);
-
-            if (proba != null && proba.distributions.length > 0) {
-                JsonArray result = new JsonArray();
-                for (int i = 0; i < proba.distributions.length; i++) {
-                    JsonObject serie = new JsonObject();
-                    double[] latlng = proba.distributions[i].getAvg();
-                    double d = proba.total[i] * 100;
-                    d = d / proba.global;
-
-                    serie.add("lat", latlng[0]);
-                    serie.add("lng", latlng[1]);
-                    serie.add("weightInt", proba.total[i]);
-                    serie.add("weightTotal", proba.global);
-                    serie.add("weight", d);
-                    result.add(serie);
-                }
-
-                httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-                httpServerExchange.setStatusCode(StatusCodes.OK);
-                System.out.println("Get Profile of user: " + userid + " at time: " + timestamp + ", returned: " + proba.distributions.length + " profile points");
-                httpServerExchange.getResponseSender().send(result.toString());
-            } else {
-                httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-                httpServerExchange.setStatusCode(StatusCodes.NO_CONTENT);
-                System.out.println("Get Profile of user: " + userid + " at time: " + timestamp + ", returned: 0 profile points");
-                httpServerExchange.getResponseSender().send("");
-            }
-
-        }
-    };
+//    private HttpHandler getProfile = new HttpHandler() {
+//        @Override
+//        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
+//            long timestamp = Long.parseLong(httpServerExchange.getQueryParameters().get("timestamp").getFirst());
+//            String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
+//            User user = index.get(userid);
+//            ProbaDistribution proba = user.getDistribution(timestamp, 0);
+//
+//            if (proba != null && proba.distributions.length > 0) {
+//                JsonArray result = new JsonArray();
+//                for (int i = 0; i < proba.distributions.length; i++) {
+//                    JsonObject serie = new JsonObject();
+//                    double[] latlng = proba.distributions[i].getAvg();
+//                    double d = proba.total[i] * 100;
+//                    d = d / proba.global;
+//
+//                    serie.add("lat", latlng[0]);
+//                    serie.add("lng", latlng[1]);
+//                    serie.add("weightInt", proba.total[i]);
+//                    serie.add("weightTotal", proba.global);
+//                    serie.add("weight", d);
+//                    result.add(serie);
+//                }
+//
+//                httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
+//                httpServerExchange.setStatusCode(StatusCodes.OK);
+//                System.out.println("Get Profile of user: " + userid + " at time: " + timestamp + ", returned: " + proba.distributions.length + " profile points");
+//                httpServerExchange.getResponseSender().send(result.toString());
+//            } else {
+//                httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
+//                httpServerExchange.setStatusCode(StatusCodes.NO_CONTENT);
+//                System.out.println("Get Profile of user: " + userid + " at time: " + timestamp + ", returned: 0 profile points");
+//                httpServerExchange.getResponseSender().send("");
+//            }
+//
+//        }
+//    };
 
 
     private HttpHandler getProfileLocation = new HttpHandler() {
@@ -399,28 +398,17 @@ public class BackendRunner {
     private HttpHandler getMostImportantLocs = new HttpHandler() {
         @Override
         public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
-            //basically here you use query parameters to get parameters from js
             String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
-            int id =   indexIDS.get(userid); //todo to fix here //here i left a todo
+            long timestamp = Long.parseLong(httpServerExchange.getQueryParameters().get("timestamp").getFirst());
 
-            //actually i get the user from the user id,
-            //but i don't use it anywhere
-            //mainly because i use a different profile
-            // to fix this:
+            calendar.setTime(new Date(timestamp));
+            int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
+            int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
+
 
             // Search request to olap
-
-            //here look at this. on the request, I HARDCODE the value.
-            //first dimension is user id, second day, third hour, 4th lat, 5th long.
-            //just to test,
-            //every modification here is wasted
-            //once we integrate back in kmf
-            //so here is your fix:
-
-            //this fix the user id, BUT DOOESNOT FIX the selected days, or hours, or gpsmin gpsmax search they are still HARDCODED
-            //you can replace here if you want the min day, max day, min hour max hour, min gps etc
-            double[] reqmin = new double[]{id, 0, 00, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-            double[] reqmax = new double[]{id, 7, 24, 90, 180};
+            double[] reqmin = new double[]{Double.parseDouble(userid), day, hour-0.5, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+            double[] reqmax = new double[]{Double.parseDouble(userid), day, hour+0.5, 90, 180};
 
             NDTreeResult filter = tree.filter(reqmin, reqmax);
             System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
@@ -428,8 +416,6 @@ public class BackendRunner {
 
             //Group by
             System.out.println("");
-            //and here you can fix the precision, basically all fixing here will be wasted
-            //once integrated in kmg, we are still searching for a better querry language.
             String[] groupby =new String[]{"*","*","*","0.005", "0.01"};
             NDTreeResult grouped =filter.groupBy(groupby);
             System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
@@ -450,7 +436,6 @@ public class BackendRunner {
             }
             httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
             httpServerExchange.setStatusCode(StatusCodes.OK);
-            //and you send the results back as response
             httpServerExchange.getResponseSender().send(result.toString());
 
         }

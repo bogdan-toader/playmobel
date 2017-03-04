@@ -80,8 +80,6 @@ public class NDTreeResult {
     //"*" is to group by this dimension
     //"-" is to keep the precision intact
     //any other number is to group by the new precision
-    //this is currently the query, takes a string array
-    //but it is not at all easy to understand and in kmf it is already done to have a nice query
     public NDTreeResult groupBy(String[] groupby) {
         long ts = System.nanoTime();
         if (res.size() == 0) {

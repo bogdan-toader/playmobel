@@ -1,7 +1,5 @@
 package lu.mobilab.playmobel.backendv2.ndtree;
 
-import org.mwg.ml.common.matrix.VolatileMatrix;
-import org.mwg.struct.Matrix;
 
 /**
  * Created by assaad on 21/10/2016.
@@ -50,31 +48,7 @@ public class GaussianProfile {
         }
     }
 
-    public Matrix getCovariance(double[] avg) {
-        int features = avg.length;
 
-        if (total == 0) {
-            return null;
-        }
-        if (total > 1) {
-            double[] covariances = new double[features * features];
-
-            double correction = total;
-            correction = correction / (total - 1);
-
-            int count = 0;
-            for (int i = 0; i < features; i++) {
-                for (int j = i; j < features; j++) {
-                    covariances[i * features + j] = (_sumsq[count] / total - avg[i] * avg[j]) * correction;
-                    covariances[j * features + i] = covariances[i * features + j];
-                    count++;
-                }
-            }
-            return VolatileMatrix.wrap(covariances, features, features);
-        } else {
-            return null;
-        }
-    }
 
     public void learnNumber(double[] values, int number) {
         if (number == 0) {
@@ -171,42 +145,6 @@ public class GaussianProfile {
         }
     }
 
-    public double[] getSigma(double[] avg) {
-        Matrix cov = getCovariance(avg);
-        double[] res = new double[avg.length];
-        for (int i = 0; i < res.length; i++) {
-            res[i] = Math.sqrt(cov.get(i, i));
-        }
-        return res;
-    }
-
-    public double[] normalize(double[] input, double[] avg, double[] sigma) {
-        double[] res = new double[input.length];
-
-        for (int i = 0; i < input.length; i++) {
-            if (sigma[i] != 0) {
-                res[i] = (input[i] - avg[i]) / sigma[i];
-            } else {
-                res[i] = 0;
-            }
-        }
-
-        return res;
-    }
-
-    public double[] inverseNormalise(double[] input, double[] avg, double[] sigma) {
-        double[] res = new double[input.length];
-
-        for (int i = 0; i < input.length; i++) {
-            if (sigma[i] != 0) {
-                res[i] = input[i] * sigma[i] + avg[i];
-            } else {
-                res[i] = avg[i];
-            }
-        }
-
-        return res;
-    }
 
     public static String printArray(String name, double[] array) {
         String s = name + ": ";

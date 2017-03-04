@@ -1,6 +1,5 @@
 package lu.mobilab.playmobel.backendv2.util;
 
-import org.mwg.ml.algorithm.profiling.ProbaDistribution;
 
 import java.util.Random;
 
@@ -51,12 +50,12 @@ public class GMMJavaTest {
 
 
         starttime=System.currentTimeMillis();
-        ProbaDistribution pb=gmm.generateDistributions(3);
+      //  ProbaDistribution pb=gmm.generateDistributions(3);
         endtime=System.currentTimeMillis();
         elapsed=endtime-starttime;
 
         gmm. totalCheck();
-        System.out.println("Generated proba in "+elapsed+" ms with "+pb.distributions.length+" components! total: " +pb.global );
+       // System.out.println("Generated proba in "+elapsed+" ms with "+pb.distributions.length+" components! total: " +pb.global );
 
 
         int s=0;
