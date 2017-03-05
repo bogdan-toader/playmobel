@@ -4,13 +4,14 @@ import greycat.*;
 import greycat.internal.tree.NDTree;
 import greycat.leveldb.LevelDBStorage;
 import greycat.ml.MLPlugin;
+import greycat.struct.ProfileResult;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
+import lu.mobilab.playmobel.backendv2.utilgreycat.*;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
+import java.rmi.server.ExportException;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -224,12 +225,13 @@ public class BackendRunnerGC {
                 .build();
         g.connect(connectionResult -> {
 
+
             double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
             double[] max = new double[]{200, 7, 24, 90, 180};
-            double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
+            double[] resolution = new double[]{1, 1, 0.1, 0.002, 0.004}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
             //0.008, 0.015 -> 1km, 0.0005, 0.001 -> 100m
 
-            Node profileNode=g.newNode(0,0);
+            Node profileNode = g.newNode(0, 0);
 
             NDTree profile = (NDTree) profileNode.getOrCreate("profile", Type.NDTREE);
             profile.setMinBound(min);
@@ -237,23 +239,157 @@ public class BackendRunnerGC {
             profile.setResolution(resolution);
 
 
-
             if (DATA_DIR_SEL.toLowerCase().contains("google")) {
-                loadDataGoogle(g,profile);
+                loadDataGoogle(g, profile);
             } else {
-                loadDataChinese(g,profile);
+                loadDataChinese(g, profile);
             }
 
 
-            long t=System.currentTimeMillis();
+            long t = System.currentTimeMillis();
             g.save(new Callback<Boolean>() {
                 @Override
                 public void on(Boolean result) {
                     System.out.println("saved");
                 }
             });
-            long s=System.currentTimeMillis();
-            System.out.println("time "+(s-t));
+            long s = System.currentTimeMillis();
+            System.out.println("time " + (s - t));
+
+
+            //for(int day=1;day<8;day++){
+            //    for(double hour=0;hour<24;hour+=0.5){
+            int day = 7;
+            double hour = 9.5;
+
+            double delay = 1;
+            double[] minSearch = new double[]{0, day, hour - delay, -90, -180};
+            double[] maxSearch = new double[]{0, day, hour + delay, 90, 180};
+            double[] resolutions = new double[]{0, 1, 1, 0.008, 0.015};
+            double[] tempkeys;
+            double[] tempkeys2;
+
+            HashMap<Integer, ArrayList<double[]>> dictionary = new HashMap<>();
+
+            int counter = 0;
+            for (int user = 0; user < 182; user++) {
+                minSearch[0] = user - 0.1;
+                maxSearch[0] = user + 0.1;
+                ProfileResult result = profile.queryArea(minSearch, maxSearch).sortByProbability(true);
+                int maxDisplay = Math.min(result.size(), result.size()); //we want to display maximum up to 5 most visited location
+                if (maxDisplay > 0) {
+                    counter++;
+                    System.out.print("user " + user + " ; " + result.size() + " ; ");
+                    ArrayList<double[]> resultlist = new ArrayList<>(maxDisplay);
+
+
+                    for (int i = 0; i < maxDisplay; i++) {
+                        tempkeys = result.keys(i);
+                        tempkeys2 = new double[tempkeys.length + 1];
+                        System.arraycopy(tempkeys, 0, tempkeys2, 0, tempkeys.length);
+                        tempkeys2[tempkeys.length] = result.value(i) * 1.0 / result.getTotal();
+                        resultlist.add(tempkeys2);
+                        System.out.print(tempkeys[3] + " " + tempkeys[4] + " " + result.value(i) + " ; ");
+                    }
+                    System.out.println("");
+                    dictionary.put(user, resultlist);
+                }
+                result.free();
+            }
+            System.out.println("day: " + day + " hour: " + hour + " counter: " + counter);
+            //    }
+            //}
+
+            ArrayList<ArrayList<ArrayList<ComparatorFct>>> recommendation = new ArrayList<>();
+
+            ArrayList<Integer> keys = new ArrayList<Integer>(dictionary.keySet());
+
+            HashMap<Integer, Integer> converter=new HashMap<>();
+            HashMap<Integer, Integer> revconverter=new HashMap<>();
+
+            for (int i = 0; i < keys.size(); i++) {
+                recommendation.add(new ArrayList<>());
+                for (int j = 0; j < keys.size() - 1; j++) {
+                    recommendation.get(i).add(new ArrayList<>());
+                }
+            }
+
+            int most = 6;
+
+
+            int uid=0;
+            for (int i = 0; i < keys.size(); i++) {
+                ArrayList<double[]> pos1 = dictionary.get(keys.get(i));
+                uid=(int)pos1.get(0)[0];
+                converter.put(i,uid);
+                revconverter.put(uid,i);
+                for (int j = 0; j < keys.size(); j++) {
+                    if (i == j) {
+                        continue;
+                    }
+                    ComparatorFct comp;
+
+                    ArrayList<double[]> pos2 = dictionary.get(keys.get(j));
+
+                    for (int l = 0; l < Math.min(pos1.size(), most); l++) {
+                        for (int m = 0; m < Math.min(pos2.size(), most); m++) {
+
+                            comp = new ComparatorFct(l, m, pos1.get(l), pos2.get(m));
+                            if (i < j) {
+                                recommendation.get(i).get(j - 1).add(comp);
+                            } else {
+                                recommendation.get(i).get(j).add(comp);
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            for (int i = 0; i < keys.size(); i++) {
+                for (int j = 0; j < keys.size() - 1; j++) {
+                    recommendation.get(i).get(j).sort(new Comparator<ComparatorFct>() {
+                        @Override
+                        public int compare(ComparatorFct o1, ComparatorFct o2) {
+                            return ComparatorFct.compare(o1, o2);
+                        }
+                    });
+                }
+            }
+
+            System.out.println("");
+            try {
+                String ss;
+                PrintWriter pwnodes = new PrintWriter(new FileWriter("graphNodes.csv"));
+                pwnodes.println("id,label");
+                PrintWriter pw = new PrintWriter(new FileWriter("graphEdges.csv"));
+                System.out.println("from , to , geodistance, timediff, probability, overall score");
+                pw.println("Source,Target,Type,geo_distane,timediff,probability,weight");
+
+                for (int i = 0; i < keys.size(); i++) {
+                    pwnodes.println(i+","+converter.get(i));
+                    recommendation.get(i).sort(new Comparator<ArrayList<ComparatorFct>>() {
+                        @Override
+                        public int compare(ArrayList<ComparatorFct> o1, ArrayList<ComparatorFct> o2) {
+                            return ComparatorFct.compareArrays(o1, o2);
+                        }
+                    });
+                    for (int k = 0; k < most; k++) {
+                        ComparatorFct cft = recommendation.get(i).get(k).get(0);
+                        ss = revconverter.get((int) cft.pos1[0]) + "," + revconverter.get((int) cft.pos2[0]) + ",Directed," + cft.geoDistance + "," + cft.timeDiff + "," + cft.probability + "," + 1/(cft.getDistance()+1);
+                        pw.println(ss);
+                        System.out.println(ss);
+                    }
+                }
+                pwnodes.close();
+                pw.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+
+            int x = 0;
+
 
             if (server == null) {
                 server = Undertow.builder()
