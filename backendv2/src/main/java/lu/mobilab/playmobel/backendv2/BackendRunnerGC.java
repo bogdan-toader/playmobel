@@ -314,7 +314,12 @@ public class BackendRunnerGC {
                 }
             }
 
-            int most = 6;
+
+
+            int most = 6; //you can modify this from 1 to 10 or 20 max, to take into account more possible locations
+                            // this will generate different csv files
+                            //then you load these files into gephi to visualize
+
 
 
             int uid=0;

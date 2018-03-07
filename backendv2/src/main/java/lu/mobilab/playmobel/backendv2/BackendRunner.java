@@ -30,6 +30,20 @@ public class BackendRunner {
 //    public final static String DATA_DIR_SEL = DATA_GOOGLE;
 
 
+    //it all depends on what you select here man!
+
+    //yes mannn but will overide?
+    //here it is in memory there is no level db look there is no variable called level db
+    //it is doing the same, just here you don't have recommender system, and on the other file you don't have the webserver
+    //anyway this code is total mess
+    //we need to refactor everything for a real webapp
+    ////but FINISH THE SHITTY PAPER FIRST :D
+    //sure man I will refactor everything to learn
+    //thanks - it's too slow ! are you on different computer ? are you using your disk? \
+    //sure man, maybe I have to close some apps
+    //anyway doesn't matter, just to show to my supervisor the map ;) amazon drive is killing perf :D ok. it's loaded!
+
+
     public final static String DATA_DIR = "/Users/bogdantoader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
     public final static String DATA_DIR_TEST = "/Users/bogdantoader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
     public final static String DATA_GOOGLE = "/Users/bogdantoader/Documents/Datasets/google/";
