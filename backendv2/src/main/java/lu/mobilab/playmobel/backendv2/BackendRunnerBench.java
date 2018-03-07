@@ -303,8 +303,7 @@ public class BackendRunnerBench {
     }
 
 
-    public void start() {
-
+    private void start(){
         double[] min = new double[]{0, 1, 0, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
         double[] max = new double[]{200, 7, 24, 90, 180};
         double[] resolution = new double[]{1, 1, 0.1, 0.0005, 0.001}; //Profile resolution: 1 user, 1 day, 0.1 hours = 6 minutes, latlng: 0.0005, 0.001 -> 100m
@@ -320,199 +319,13 @@ public class BackendRunnerBench {
             loadDataChinese(tree);
         }
 
-        //test profile query speed 
+        //test profile query speed
         double[] latlng = new double[]{39.988356, 116.316227};
         double radius = 10000;
         testClassical(latlng, radius);
         testProfile(latlng, radius);
-
-
-        if (server == null) {
-            server = Undertow.builder()
-                    .addHttpListener(8081, "0.0.0.0")
-                    .setHandler(Handlers.path()
-                            .addPrefixPath("/getPositions", getPositions)
-                            // .addPrefixPath("/getProfile", getProfile)
-                            .addPrefixPath("/getUsers", getUsers)
-                            .addPrefixPath("/getMostImportantLocs", getMostImportantLocs)
-                    )
-                    .build();
-        }
-        server.start();
     }
 
-
-    private HttpHandler getPositions = new HttpHandler() {
-        @Override
-        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
-            long timestamp = Long.parseLong(httpServerExchange.getQueryParameters().get("timestamp").getFirst());
-
-            JsonArray result = new JsonArray();
-            int total = 0;
-            for (String key : index.keySet()) {
-                User user = index.get(key);
-                LatLngObj latlng = user.getLatLng(timestamp);
-                if (latlng != null) {
-                    JsonObject serie = new JsonObject();
-                    serie.add("userId", user.getUserId());
-                    serie.add("lat", latlng.getLat());
-                    serie.add("lng", latlng.getLng());
-                    serie.add("realtime", latlng.getRealtime());
-                    total++;
-                    result.add(serie);
-                }
-            }
-
-            httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-            httpServerExchange.setStatusCode(StatusCodes.OK);
-            System.out.println("Get all positions request at time: " + timestamp + ", returned: " + total + " users");
-            httpServerExchange.getResponseSender().send(result.toString());
-        }
-    };
-
-//    private HttpHandler getProfile = new HttpHandler() {
-//        @Override
-//        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
-//            long timestamp = Long.parseLong(httpServerExchange.getQueryParameters().get("timestamp").getFirst());
-//            String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
-//            User user = index.get(userid);
-//            ProbaDistribution proba = user.getDistribution(timestamp, 0);
-//
-//            if (proba != null && proba.distributions.length > 0) {
-//                JsonArray result = new JsonArray();
-//                for (int i = 0; i < proba.distributions.length; i++) {
-//                    JsonObject serie = new JsonObject();
-//                    double[] latlng = proba.distributions[i].getAvg();
-//                    double d = proba.total[i] * 100;
-//                    d = d / proba.global;
-//
-//                    serie.add("lat", latlng[0]);
-//                    serie.add("lng", latlng[1]);
-//                    serie.add("weightInt", proba.total[i]);
-//                    serie.add("weightTotal", proba.global);
-//                    serie.add("weight", d);
-//                    result.add(serie);
-//                }
-//
-//                httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-//                httpServerExchange.setStatusCode(StatusCodes.OK);
-//                System.out.println("Get Profile of user: " + userid + " at time: " + timestamp + ", returned: " + proba.distributions.length + " profile points");
-//                httpServerExchange.getResponseSender().send(result.toString());
-//            } else {
-//                httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-//                httpServerExchange.setStatusCode(StatusCodes.NO_CONTENT);
-//                System.out.println("Get Profile of user: " + userid + " at time: " + timestamp + ", returned: 0 profile points");
-//                httpServerExchange.getResponseSender().send("");
-//            }
-//
-//        }
-//    };
-
-
-    private HttpHandler getProfileLocation = new HttpHandler() {
-        @Override
-        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
-            long startts = Long.parseLong(httpServerExchange.getQueryParameters().get("startts").getFirst());
-            long endts = Long.parseLong(httpServerExchange.getQueryParameters().get("endts").getFirst());
-            double lat = Double.parseDouble(httpServerExchange.getQueryParameters().get("lat").getFirst());
-            double lng = Double.parseDouble(httpServerExchange.getQueryParameters().get("lng").getFirst());
-            double minlat = Double.parseDouble(httpServerExchange.getQueryParameters().get("minlat").getFirst());
-            double minlng = Double.parseDouble(httpServerExchange.getQueryParameters().get("minlng").getFirst());
-            double maxlat = Double.parseDouble(httpServerExchange.getQueryParameters().get("maxlat").getFirst());
-            double maxlng = Double.parseDouble(httpServerExchange.getQueryParameters().get("maxlng").getFirst());
-
-            double radius = Double.parseDouble(httpServerExchange.getQueryParameters().get("radius").getFirst());
-            int ts = Integer.parseInt(httpServerExchange.getQueryParameters().get("ts").getFirst());
-            String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
-            User user = index.get(userid);
-
-            double[] latlng = new double[]{lat, lng};
-            double[] minlatlng = new double[]{minlat, minlng};
-            double[] maxlatlng = new double[]{maxlat, maxlng};
-            double[] proba = user.getProbaLocation(latlng, radius, minlatlng, maxlatlng, ts, startts, endts, false);
-            double d = 0;
-            JsonArray result = new JsonArray();
-
-            for (int i = 0; i < proba.length; i++) {
-                d = i * 7.0 / proba.length;
-                JsonObject serie = new JsonObject();
-                serie.add("time", d);
-                serie.add("proba", proba[i]);
-                result.add(serie);
-            }
-            httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-            httpServerExchange.setStatusCode(StatusCodes.OK);
-            System.out.println("Profiling location: " + lat + "," + lng + " completed");
-            httpServerExchange.getResponseSender().send(result.toString());
-
-        }
-    };
-
-
-    private HttpHandler getMostImportantLocs = new HttpHandler() {
-        @Override
-        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
-            String userid = httpServerExchange.getQueryParameters().get("userid").getFirst();
-            long timestamp = Long.parseLong(httpServerExchange.getQueryParameters().get("timestamp").getFirst());
-
-            calendar.setTime(new Date(timestamp));
-            int day = calendar.get(Calendar.DAY_OF_WEEK); //so this is 1:Sunday -> 7:Saturday
-            int hour = calendar.get(Calendar.HOUR_OF_DAY); //this is from 0 ->23
-
-
-            // Search request to olap
-            double[] reqmin = new double[]{Double.parseDouble(userid), day, hour - 0.5, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-            double[] reqmax = new double[]{Double.parseDouble(userid), day, hour + 0.5, 90, 180};
-
-            NDTreeResult filter = tree.filter(reqmin, reqmax);
-            System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
-            filter.sort();
-
-            //Group by
-            System.out.println("");
-            String[] groupby = new String[]{"*", "*", "*", "0.005", "0.01"};
-            NDTreeResult grouped = filter.groupBy(groupby);
-            System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
-
-            JsonArray result = new JsonArray();
-            for (int i = 0; i < grouped.getResult().size(); i++) {
-                JsonObject serie = new JsonObject();
-                double[] latlng = grouped.getResult().get(i).getVal();
-                double d = grouped.getResult().get(i).getTot() * 100;
-                d = d / grouped.getGlobal();
-
-                serie.add("lat", latlng[0]);
-                serie.add("lng", latlng[1]);
-                serie.add("weightInt", grouped.getResult().get(i).getTot());
-                serie.add("weightTotal", grouped.getGlobal());
-                serie.add("weight", d);
-                result.add(serie);
-            }
-            httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-            httpServerExchange.setStatusCode(StatusCodes.OK);
-            httpServerExchange.getResponseSender().send(result.toString());
-
-        }
-    };
-
-
-    private HttpHandler getUsers = new HttpHandler() {
-        @Override
-        public void handleRequest(HttpServerExchange httpServerExchange) throws Exception {
-
-            JsonArray result = new JsonArray();
-
-            for (String key : usernames) {
-                result.add(key);
-            }
-
-            httpServerExchange.getResponseHeaders().add(new HttpString("Access-Control-Allow-Origin"), "*");
-            httpServerExchange.setStatusCode(StatusCodes.OK);
-            System.out.println("Listing all users: " + index.keySet().size() + " users returned!");
-            httpServerExchange.getResponseSender().send(result.toString());
-
-        }
-    };
 
     public static void main(String[] args) {
         BackendRunnerBench runner = new BackendRunnerBench();
