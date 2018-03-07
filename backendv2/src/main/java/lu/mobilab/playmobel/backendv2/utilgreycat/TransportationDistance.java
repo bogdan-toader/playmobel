@@ -1,7 +1,8 @@
 package lu.mobilab.playmobel.backendv2.utilgreycat;
 
-import greycat.utility.distance.Distance;
-import greycat.utility.distance.GeoDistance;
+
+import lu.mobilab.playmobel.backendv2.util.Distance;
+import lu.mobilab.playmobel.backendv2.util.GeoDistance;
 
 /**
  * Created by bogdantoader on 04/03/2017.

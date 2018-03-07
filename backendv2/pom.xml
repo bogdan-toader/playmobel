@@ -41,21 +41,6 @@
             <artifactId>json</artifactId>
             <version>20160212</version>
         </dependency>
-        <dependency>
-            <groupId>com.datathings</groupId>
-            <artifactId>greycat</artifactId>
-            <version>4-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.datathings</groupId>
-            <artifactId>greycat-ml</artifactId>
-            <version>4-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.datathings</groupId>
-            <artifactId>greycat-leveldb</artifactId>
-            <version>4-SNAPSHOT</version>
-        </dependency>
         <!-- Test -->
 
 

@@ -1,7 +1,6 @@
 package lu.mobilab.playmobel.backendv2.util;
 
-import greycat.utility.distance.Distance;
-import greycat.utility.distance.GeoDistance;
+
 import lu.mobilab.playmobel.backendv2.ndtree.NDTree;
 
 import java.util.*;
