@@ -283,7 +283,7 @@ public class BackendRunnerBench {
             resultfounds += l[1];
             counter++;
         }
-        System.out.println("Total time taken to iterate on all users, raw data: " + totaltime / 1000000 + " ms avg per user: " + totaltime * 1.0 / (counter * 1000000) + " ms/user");
+        System.out.println("Total time taken to iterate on all users, raw data: " + totaltime / 1000000 + " ms. Avg per user: " + totaltime * 1.0 / (counter * 1000000) + " ms/user");
     }
 
 
@@ -299,7 +299,7 @@ public class BackendRunnerBench {
             resultfounds += l[1];
             counter++;
         }
-        System.out.println("Total time taken to iterate on all users, profiles: " + totaltime / 1000000 + " ms avg per user: " + totaltime * 1.0 / (counter * 1000000) + " ms/user");
+        System.out.println("Total time taken to iterate on all users, profiles: " + totaltime / 1000000 + " ms. Avg per user: " + totaltime * 1.0 / (counter * 1000000) + " ms/user");
     }
 
 
