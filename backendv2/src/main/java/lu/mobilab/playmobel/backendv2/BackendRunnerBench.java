@@ -47,16 +47,16 @@ public class BackendRunnerBench {
 
 
     public final static String DATA_DIR = "/Volumes/Data/Data/Geolife Trajectories 1.3/Data/";
-    public final static String DATA_DIR_TEST = "/Users/bogdantoader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_DIR_TEST = "/Volumes/Data/Data/Geolife Trajectories 1.3/DataTest/";
     public final static String DATA_GOOGLE = "/Volumes/Data/Data/Geolife Trajectories 1.3/google/";
     public final static String DATA_DIR_SEL = DATA_DIR;
-
+//    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
 
     private static final DecimalFormat df = new DecimalFormat("###,###.#");
     private static final DecimalFormat intf = new DecimalFormat("###,###,###");
 
     private final double[] gpserr = {0.008, 0.015};
-    private final GMMConfig config = new GMMConfig(3, 10, 3, 10, 2, gpserr);
+    private final GMMConfig config = new GMMConfig(4, 20, 3, 10, 2, gpserr);
     private final HashMap<String, User> index = new HashMap<>();
     private final long profileDuration = 4 * 30 * 24 * 3600 * 1000l; //profile duration is 3 months
     private final int profileprecision = 60;
@@ -159,7 +159,8 @@ public class BackendRunnerBench {
 
                                 input[0] = userid;
                                 input[1] = day;
-                                input[2] = hour + min / 60.0;;
+                                input[2] = hour + min / 60.0;
+                                ;
                                 input[3] = Double.parseDouble(substr[0]);
                                 input[4] = Double.parseDouble(substr[1]);
                                 profile.insert(input);
@@ -181,7 +182,6 @@ public class BackendRunnerBench {
         }
         finalReport(starttime, totallines);
     }
-
 
 
     private void loadDataGoogle(NDTree profile) {
@@ -245,7 +245,7 @@ public class BackendRunnerBench {
         }
     }
 
-    private void experiment(){
+    private void experiment() {
         double[] minlatlngworld = new double[]{-90, -180};              //min bound of the world
         double[] maxlatlngworld = new double[]{90, 180};                //max bound of the world
 
@@ -254,9 +254,9 @@ public class BackendRunnerBench {
 
         double[] searchWork = new double[]{49.632510, 6.168830};        //work
         double[] searchHome = new double[]{49.508012, 6.050853};        //home
-        double[] searchGarnich=  new double[]{49.621166, 5.935100};     //observation
+        double[] searchGarnich = new double[]{49.621166, 5.935100};     //observation
 
-        int minPrecision =5; //Search every 5 minutes of the full week
+        int minPrecision = 5; //Search every 5 minutes of the full week
         double[] proba = index.get("assaad").getProbaLocation(searchGarnich, 1000, minlatlng, maxlatlng, minPrecision, 1450369538000l, 1481991938000l, false);
         //you get: decimal day, decimal hour, probability in %
 
@@ -270,6 +270,38 @@ public class BackendRunnerBench {
             System.out.println(d + "," + h + "," + proba[i]);
         }
     }
+
+
+    private void testClassical(double[] latlng, double radius) {
+        long totaltime = 0;
+        int counter = 0;
+        long resultfounds = 0;
+        for (String s : index.keySet()) {
+            User u = index.get(s);
+            long[] l = u.testClassicalSpeed(latlng, radius);
+            totaltime += l[0];
+            resultfounds += l[1];
+            counter++;
+        }
+        System.out.println("Total time taken to iterate on all users, raw data: " + totaltime / 1000000 + " ms avg per user: " + totaltime * 1.0 / (counter * 1000000) + " ms/user");
+    }
+
+
+    private void testProfile(double[] latlng, double radius) {
+        long totaltime = 0;
+        int level = 1;
+        int counter = 0;
+        long resultfounds = 0;
+        for (String s : index.keySet()) {
+            User u = index.get(s);
+            long[] l = u.testProfileSpeed(latlng, radius, level);
+            totaltime += l[0];
+            resultfounds += l[1];
+            counter++;
+        }
+        System.out.println("Total time taken to iterate on all users, profiles: " + totaltime / 1000000 + " ms avg per user: " + totaltime * 1.0 / (counter * 1000000) + " ms/user");
+    }
+
 
     public void start() {
 
@@ -288,15 +320,21 @@ public class BackendRunnerBench {
             loadDataChinese(tree);
         }
 
+        //test profile query speed 
+        double[] latlng = new double[]{39.988356, 116.316227};
+        double radius = 10000;
+        testClassical(latlng, radius);
+        testProfile(latlng, radius);
+
 
         if (server == null) {
             server = Undertow.builder()
                     .addHttpListener(8081, "0.0.0.0")
                     .setHandler(Handlers.path()
                             .addPrefixPath("/getPositions", getPositions)
-                           // .addPrefixPath("/getProfile", getProfile)
+                            // .addPrefixPath("/getProfile", getProfile)
                             .addPrefixPath("/getUsers", getUsers)
-                            .addPrefixPath("/getMostImportantLocs",getMostImportantLocs)
+                            .addPrefixPath("/getMostImportantLocs", getMostImportantLocs)
                     )
                     .build();
         }
@@ -423,8 +461,8 @@ public class BackendRunnerBench {
 
 
             // Search request to olap
-            double[] reqmin = new double[]{Double.parseDouble(userid), day, hour-0.5, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
-            double[] reqmax = new double[]{Double.parseDouble(userid), day, hour+0.5, 90, 180};
+            double[] reqmin = new double[]{Double.parseDouble(userid), day, hour - 0.5, -90, -180}; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
+            double[] reqmax = new double[]{Double.parseDouble(userid), day, hour + 0.5, 90, 180};
 
             NDTreeResult filter = tree.filter(reqmin, reqmax);
             System.out.println("Found: " + filter.getGlobal() + " results, in: " + filter.getResult().size() + " atomic results");
@@ -432,12 +470,12 @@ public class BackendRunnerBench {
 
             //Group by
             System.out.println("");
-            String[] groupby =new String[]{"*","*","*","0.005", "0.01"};
-            NDTreeResult grouped =filter.groupBy(groupby);
+            String[] groupby = new String[]{"*", "*", "*", "0.005", "0.01"};
+            NDTreeResult grouped = filter.groupBy(groupby);
             System.out.println("Found: " + grouped.getGlobal() + " results, in: " + grouped.getResult().size() + " atomic results");
 
             JsonArray result = new JsonArray();
-            for(int i=0;i<grouped.getResult().size();i++){
+            for (int i = 0; i < grouped.getResult().size(); i++) {
                 JsonObject serie = new JsonObject();
                 double[] latlng = grouped.getResult().get(i).getVal();
                 double d = grouped.getResult().get(i).getTot() * 100;
@@ -456,7 +494,6 @@ public class BackendRunnerBench {
 
         }
     };
-
 
 
     private HttpHandler getUsers = new HttpHandler() {

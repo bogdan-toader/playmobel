@@ -19,7 +19,7 @@ public class User {
     private int minPrecision;
     private GMMConfig config;
 
-    private static Distance distance = GeoDistance.instance();
+    public static Distance distance = GeoDistance.instance();
 
     public User(String userId, final GMMConfig config, long profileDuration, int minPrecision) {
         this.userId = userId;
@@ -120,6 +120,47 @@ public class User {
             long realtime = userLatLng.floorKey(timestamp);
             return new LatLngObj(userLatLng.get(realtime), timestamp, realtime);
         }
+    }
+
+
+    public long[] testClassicalSpeed(double[] latlng, double radius) {
+        int counter = 0;
+        long starttime = System.nanoTime();
+        for (long t : userLatLng.keySet()) {
+            double[] v = userLatLng.get(t);
+            if (distance.measure(latlng, v) < radius) {
+                counter++;
+            }
+        }
+        long endtime = System.nanoTime();
+        long res = endtime - starttime;
+        //System.out.println("Time taken: " + res + " ms, to iterate on all raw data, found: " + counter + " results");
+        return new long[]{res, counter};
+    }
+
+    public long[] testProfileSpeed(double[] latlng, double radius, int level) {
+        long counter = 0;
+        long starttime = System.nanoTime();
+
+        for (long t : profiles.keySet()) {
+            GMMJava[] p = profiles.get(t);
+            for (GMMJava pp : p) {
+                if(pp!=null) {
+                    counter += pp.getTotalInside(latlng, radius, level);
+                }
+            }
+        }
+
+//        for (long t :) {
+//            double[] v = userLatLng.get(t);
+//            if (distance.measure(latlng, v) < radius) {
+//                counter++;
+//            }
+//        }
+        long endtime = System.nanoTime();
+        long res = endtime - starttime;
+        //System.out.println("P Time taken: " + res + " ms, to iterate on all raw data, found: " + counter + " results");
+        return new long[]{res, counter};
     }
 
 

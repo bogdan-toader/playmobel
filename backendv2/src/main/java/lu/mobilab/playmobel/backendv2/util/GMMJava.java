@@ -1,7 +1,6 @@
 package lu.mobilab.playmobel.backendv2.util;
 
 
-
 import java.util.ArrayList;
 
 /**
@@ -310,30 +309,29 @@ public class GMMJava {
     }
 
 
-    public boolean totalCheck(){
-        ArrayList<GMMJava> toCheck=new ArrayList<>();
+    public boolean totalCheck() {
+        ArrayList<GMMJava> toCheck = new ArrayList<>();
         toCheck.add(this);
-        boolean result=true;
+        boolean result = true;
         int totaltemp;
-        while (toCheck.size()>0) {
+        while (toCheck.size() > 0) {
             ArrayList<GMMJava> toCheckNext = new ArrayList<>();
-            for(int i=0;i<toCheck.size();i++){
-                GMMJava temp= toCheck.get(i);
-                if(temp.subGaussians!=null && temp.subGaussians.size()>0){
-                    totaltemp=0;
-                    for(int j=0;j<temp.subGaussians.size();j++){
-                        totaltemp+=temp.subGaussians.get(j).total;
+            for (int i = 0; i < toCheck.size(); i++) {
+                GMMJava temp = toCheck.get(i);
+                if (temp.subGaussians != null && temp.subGaussians.size() > 0) {
+                    totaltemp = 0;
+                    for (int j = 0; j < temp.subGaussians.size(); j++) {
+                        totaltemp += temp.subGaussians.get(j).total;
                         toCheckNext.add(temp.subGaussians.get(j));
                     }
-                    if(totaltemp!=temp.total){
+                    if (totaltemp != temp.total) {
                         System.out.println("Error found");
-                        result=false;
+                        result = false;
                     }
                 }
             }
-            toCheck=toCheckNext;
+            toCheck = toCheckNext;
         }
-
 
 
         return result;
@@ -351,6 +349,36 @@ public class GMMJava {
             } else {
                 parent.internallearn(values, rootconfig.width, rootconfig.compressionFactor, rootconfig.compressionIter, rootconfig.resolution, rootconfig.threshold, true);
             }
+        }
+    }
+
+
+    public long getTotalInside(double[] latlng, double radius, int level) {
+
+        if (this.level == level) {
+            double[] avg = getAvg();
+            if (avg != null && User.distance.measure(avg, latlng) < radius) {
+                return this.total;
+            } else {
+                return 0;
+            }
+        } else {
+            if(this.subGaussians!=null) {
+                long sum = 0;
+                for (GMMJava j : this.subGaussians) {
+                    sum += j.getTotalInside(latlng, radius, level);
+                }
+                return sum;
+            }
+            else {
+                double[] avg = getAvg();
+                if (avg != null && User.distance.measure(avg, latlng) < radius) {
+                    return this.total;
+                } else {
+                    return 0;
+                }
+            }
+
         }
     }
 
