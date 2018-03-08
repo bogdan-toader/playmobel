@@ -32,31 +32,28 @@ public class BackendRunnerBench {
 //    public final static String DATA_DIR_SEL = DATA_GOOGLE;
 
 
-    //it all depends on what you select here man!
 
-    //yes mannn but will overide?
-    //here it is in memory there is no level db look there is no variable called level db
-    //it is doing the same, just here you don't have recommender system, and on the other file you don't have the webserver
-    //anyway this code is total mess
-    //we need to refactor everything for a real webapp
-    ////but FINISH THE SHITTY PAPER FIRST :D
-    //sure man I will refactor everything to learn
-    //thanks - it's too slow ! are you on different computer ? are you using your disk? \
-    //sure man, maybe I have to close some apps
-    //anyway doesn't matter, just to show to my supervisor the map ;) amazon drive is killing perf :D ok. it's loaded!
+//   public final static String DATA_DIR = "/Volumes/Data/Data/Geolife Trajectories 1.3/Data/";
+//   public final static String DATA_DIR_TEST = "/Volumes/Data/Data/Geolife Trajectories 1.3/DataTest/";
+//   public final static String DATA_GOOGLE = "/Volumes/Data/Data/Geolife Trajectories 1.3/google/";
+//   public final static String DATA_DIR_SEL = DATA_DIR;
+//   public final static String DATA_DIR_SEL = DATA_DIR_TEST;
 
+// data BT ----------------------
 
-    public final static String DATA_DIR = "/Volumes/Data/Data/Geolife Trajectories 1.3/Data/";
-    public final static String DATA_DIR_TEST = "/Volumes/Data/Data/Geolife Trajectories 1.3/DataTest/";
-    public final static String DATA_GOOGLE = "/Volumes/Data/Data/Geolife Trajectories 1.3/google/";
+    public final static String DATA_DIR = "/Users/bogdantoader/Documents/Datasets/Geolife Trajectories 1.3/Data/";
+    public final static String DATA_DIR_TEST = "/Users/bogdantoader/Documents/Datasets/Geolife Trajectories 1.3/DataTest/";
+    public final static String DATA_GOOGLE = "/Users/bogdantoader/Documents/Datasets/Geolife Trajectories 1.3/google/";
     public final static String DATA_DIR_SEL = DATA_DIR;
 //    public final static String DATA_DIR_SEL = DATA_DIR_TEST;
+
 
     private static final DecimalFormat df = new DecimalFormat("###,###.#");
     private static final DecimalFormat intf = new DecimalFormat("###,###,###");
 
-    private final double[] gpserr = {0.008, 0.015};
-    private final GMMConfig config = new GMMConfig(4, 20, 3, 10, 2, gpserr);
+    private static int USERS=180;
+    private final double[] gpserr = {0.000008, 0.000015};
+    private final GMMConfig config = new GMMConfig(2, 80, 2, 10, 2, gpserr);
     private final HashMap<String, User> index = new HashMap<>();
     private final long profileDuration = 4 * 30 * 24 * 3600 * 1000l; //profile duration is 3 months
     private final int profileprecision = 60;
@@ -97,8 +94,8 @@ public class BackendRunnerBench {
         double speed = totallines;
         speed = speed / time;
         System.out.println("");
-        System.out.println("IMPORT COMPLETED, Loaded " + usernames.length + " users with: " + intf.format(totallines) + " timepoints, elapsed time: " + df.format(time) + " s, speed: " + intf.format(speed) + " values/sec");
-        System.out.println("");
+        System.out.print("IMPORT COMPLETED, Loaded \t" + usernames.length + "\t users with: \t" + intf.format(totallines) + "\t timepoints, elapsed time: \t" + df.format(time) + "\t s, speed: \t" + intf.format(speed) + "\t values/sec\t");
+    //    System.out.println("");
     }
 
     private static void reportTime(long starttime, int usersize, int totallines, String userName) {
@@ -123,7 +120,8 @@ public class BackendRunnerBench {
         String line;
 
 
-        for (int i = 0; i < listOfFiles.length; i++) {
+
+        for (int i = 0; i < USERS; i++) {
             if (listOfFiles[i].isDirectory()) {
                 String username = listOfFiles[i].getName();
                 int userid = Integer.parseInt(username);
@@ -133,6 +131,7 @@ public class BackendRunnerBench {
                 path = listOfFiles[i].getPath() + "/Trajectory/";
                 subfolder = new File(path);
                 listOfsubFiles = subfolder.listFiles();
+
                 for (int j = 0; j < listOfsubFiles.length; j++) {
                     if (listOfsubFiles[j].isFile() && listOfsubFiles[j].getName().endsWith(".plt")) {
 
@@ -283,7 +282,7 @@ public class BackendRunnerBench {
             resultfounds += l[1];
             counter++;
         }
-        System.out.println("Total time taken to iterate on all users, raw data: " + totaltime / 1000000 + " ms. Avg per user: " + totaltime * 1.0 / (counter * 1000000) + " ms/user");
+        System.out.print("\tTotal time taken to iterate on all users, raw data: \t" + totaltime / 1000000 + "\t ms. Avg per user: \t" + totaltime * 1.0 / (counter * 1000000) + "\t ms/user, results: \t"+resultfounds);
     }
 
 
@@ -299,7 +298,7 @@ public class BackendRunnerBench {
             resultfounds += l[1];
             counter++;
         }
-        System.out.println("Total time taken to iterate on all users, profiles: " + totaltime / 1000000 + " ms. Avg per user: " + totaltime * 1.0 / (counter * 1000000) + " ms/user");
+        System.out.print("\tTotal time taken to iterate on all users, profiles: \t" + totaltime / 1000000 + "\t ms. Avg per user: \t" + totaltime * 1.0 / (counter * 1000000) + "\t ms/user, results: \t"+resultfounds);
     }
 
 
@@ -321,7 +320,7 @@ public class BackendRunnerBench {
 
         //test profile query speed
         double[] latlng = new double[]{39.988356, 116.316227};
-        double radius = 10000;
+        double radius = 500;
         testClassical(latlng, radius);
         testProfile(latlng, radius);
     }
