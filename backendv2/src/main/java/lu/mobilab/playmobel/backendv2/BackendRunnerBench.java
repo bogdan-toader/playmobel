@@ -120,8 +120,10 @@ public class BackendRunnerBench {
         String line;
 
 
+        int linesPerUser=100;
 
         for (int i = 0; i < USERS; i++) {
+            int countLines=0; //for each user we start a counter at 0
             if (listOfFiles[i].isDirectory()) {
                 String username = listOfFiles[i].getName();
                 int userid = Integer.parseInt(username);
@@ -140,6 +142,11 @@ public class BackendRunnerBench {
                                 line = br.readLine();
                             }
                             while ((line = br.readLine()) != null) {
+                                countLines++; //we add one on each line read
+                                if(countLines>linesPerUser){
+                                    //leave while loop if countLines> linesPerUser
+                                    break;
+                                }
                                 double[] input = new double[5]; //0:userID, 1:day, 2:hour, 3:gpslat, 4:gpslng
 
                                 String[] substr = line.split(",");
